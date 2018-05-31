@@ -2,10 +2,10 @@
 from skimage import io
 import traceback
 from scipy.ndimage import gaussian_filter1d as gf
-from CrossCorrelation import *
-from iotools import *
-from feature import *
-from iotools import parse_input, update_frame_number
+from pydrift.CrossCorrelation import *
+from pydrift.iotools import *
+from pydrift.feature import *
+from pydrift.iotools import parse_input, update_frame_number
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

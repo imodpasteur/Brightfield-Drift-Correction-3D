@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='pydrift',
     version='0.0.1',
-    packages=['', 'tests'],
+    packages=['pydrift'],
     url='https://gitlab.pasteur.fr/aaristov/Brightfield_Drift_Tracking_3D.git',
     license='BSD',
     author='Andrey Aristov',

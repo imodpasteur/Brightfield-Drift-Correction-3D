@@ -1,6 +1,6 @@
 from unittest import TestCase
 import numpy as np
-from feature import get_xy_boundaries
+from pydrift.feature import get_xy_boundaries
 
 
 class TestGet_xy_boundaries(TestCase):

@@ -1,6 +1,6 @@
 from unittest import TestCase
 import numpy as np
-from feature import check_limits
+from pydrift.feature import check_limits
 
 
 class TestCheckLimits(TestCase):
