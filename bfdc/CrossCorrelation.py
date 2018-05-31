@@ -22,7 +22,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
     Ouputs [x,y,z] in pixels
     """
     try:
-        from pydrift import gaussfit
+        from bfdc import gaussfit
     except ImportError:
         raise ImportError('Missing gaussfit.py. Please download one from Zhuanglab Github')
     #cut_stack = np.zeros((1, 1, 1))

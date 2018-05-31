@@ -1,6 +1,6 @@
 from unittest import TestCase
 import numpy as np
-from pydrift.iotools import check_stacks_size_equals, check_multi_channel,skip_stack
+from bfdc.iotools import check_stacks_size_equals, check_multi_channel,skip_stack
 import logging
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 from unittest import TestCase,skip
 import numpy as np
-from pydrift.iotools import check_stacks_size_equals
-from pydrift.Drift import main
+from bfdc.iotools import check_stacks_size_equals
+from bfdc.Drift import main
 import sys
 import logging
 logger = logging.getLogger(__name__)

@@ -8,7 +8,7 @@ import scipy.ndimage as ndi
 from scipy.ndimage import gaussian_filter as gf
 from skimage import filters
 import matplotlib.pyplot as plt
-from pydrift.CrossCorrelation import get_abs_max
+from bfdc.CrossCorrelation import get_abs_max
 
 
 
