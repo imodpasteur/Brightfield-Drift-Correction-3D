@@ -1,0 +1,186 @@
+import argparse
+
+import numpy as np
+import os
+import matplotlib.pyplot as plt
+from scipy import interpolate
+from scipy.ndimage import gaussian_filter1d as gf1
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def save_drift_table(table: np.ndarray, path):
+    save_table(table, path, fmt='drift_table')
+
+
+def save_table(table, path: str, fmt: str = 'drift_table'):
+    if fmt == 'drift_table':
+        try:
+            logger.info(f'Saving results to {path}')
+            np.savetxt(path, table, fmt='%.1f', delimiter=',', comments='', newline='\r\n',
+                       header='"frame","x [nm]","y [nm]","z [nm]"')
+            print('')
+        except IOError as e:
+            logger.error('Problem saving drift table: ')
+            logger.error(e.strerror)
+    else:
+        logger.error('Please specify valid format: ["drift_table"]')
+        logger.error('File NOT saved!')
+
+
+def get_abs_path(path):
+    dir_path = os.path.abspath(path)
+    return dir_path
+
+
+def get_parent_path(path):
+    return os.path.abspath(os.path.join(path, os.pardir))
+
+
+def open_csv_table(path):
+    return np.loadtxt(path, delimiter=',', skiprows=1)
+
+
+def save_zola_table(table, path):
+    header = 'id,frame,x [nm],y [nm],z [nm],intensity,background,chi2,crlbX,crlbY,crlbZ,driftX,driftY,driftZ,' \
+             'occurrenceMerging '
+    np.savetxt(path, table, fmt='%.1f', delimiter=',', comments='', newline='\r\n', header=header)
+
+
+def save_drift_plot(table, path):
+    plt.plot(table[:, 0], table[:, 1:])
+    plt.xlabel('frame')
+    plt.ylabel('Drift, nm')
+    plt.legend(['x', 'y', 'z'])
+    plt.title('Drift BF, nm')
+    plt.grid()
+    plt.savefig(path)
+    logger.info(f"Saved drift plot to {path}")
+
+
+def interpolate_drift_table(table_fxyz, start, skip, smooth=10):
+    w = table_fxyz.shape[1]
+    if smooth > 0:
+        table_fxyz = smooth_drift_table(table_fxyz, sigma=smooth)
+
+    time = table_fxyz[:, 0]
+    # print(time.shape)
+    timeNew = np.arange(1, max(time) + 1)
+    newTable = np.zeros((len(timeNew), w))
+    newTable[:, 0] = timeNew
+    for col in range(1, w):
+        y = table_fxyz[:, col]
+        # print(y.shape)
+        f = interpolate.interp1d(time, y, fill_value='extrapolate')
+        ynew = f(timeNew)
+        newTable[:, col] = ynew
+    logger.info(f'interpolating from {len(time)} to {len(ynew)} frames')
+    return newTable
+
+
+def smooth_drift_table(table, sigma):
+    drift = gf1(table[:, 1:], sigma=sigma, axis=0)
+    table_smooth = table.copy()
+    table_smooth[:, 1:] = drift
+    return table_smooth
+
+
+def check_stacks_size_equals(cal_stack,movie):
+    if np.ndim(cal_stack) == np.ndim(movie) == 3:
+        x1,x2 = cal_stack.shape[1],cal_stack.shape[2]
+        y1,y2 = movie.shape[1],movie.shape[2]
+        return x1 == y1 and x2 == y2
+
+
+
+def check_multi_channel(movie,channel = 2, channel_position = 1):
+    """
+    Checks if stack contains channels and returns single channel stack
+    :param movie: numpy array zxy or zcxy
+    :param channel: 1 - first channel, 2 - second channel, etc
+    :param channel_position: 1 - for zcxy, 0 - for czxy
+    :return: numpy array zxy
+    """
+    logger.info(f'check_multi_channel: Input shape {movie.shape}')
+    ndim = np.ndim(movie)
+    if ndim == 3:
+        logger.info(f'check_multi_channel: Returning shape {movie.shape}')
+        return movie
+    elif ndim == 4:
+        if channel_position == 1:
+            logger.info(f'check_multi_channel: Returning shape {movie[:,channel-1].shape}')
+            return movie[:,channel-1]
+        elif channel_position == 0:
+            logger.info(f'check_multi_channel: Returning shape {movie[channel-1].shape}')
+            return movie[channel-1]
+    else:
+        raise(TypeError(f'check_multi_channel: channel order not understood, movie shape {movie.shape}'))
+
+
+def skip_stack(movie,start,skip,nframes):
+    if start > 0:
+        start = start - 1
+    return movie[start:nframes:skip+1]
+
+
+def parse_input():
+    # Main parser
+    parser = argparse.ArgumentParser('BFDC')
+    subparsers = parser.add_subparsers(dest='command')
+
+    for command in ['trace', 'apply']:
+        subparsers.add_parser(command)
+
+    # trace
+    trace_parser = subparsers.add_parser('trace', help='identify drift in 3D')
+    trace_parser.add_argument('dict', type=str, default='data/LED_stack_full_100nm.tif',
+                              help='calibration stack file')
+    trace_parser.add_argument('movie', type=str, default='data/sr_2_LED_movie.tif',
+                              help='movie stack file')
+    trace_parser.add_argument('-z', '--zstep', type=int, default=100, help='z-step in nm. Default: 100')
+    trace_parser.add_argument('-xypx', '--xypixel', type=int, default=110, help='xy pixel size in nm. Default: 110')
+    trace_parser.add_argument('--nframes', type=int, default=None, help='now many frames to analyse from the movie. Default: None')
+    trace_parser.add_argument('--driftFileName', type=str, default='BFCC_table.csv',
+                              help='filename for the drift table. Default: "BFCC_table.csv"')
+    trace_parser.add_argument('--skip', type=int, default=0,
+                              help='how many frames to skip form the movie. Default: 0')
+    trace_parser.add_argument('--start', type=int, default=0,
+                              help='how many frames to skip in the beginning of the movie. Default: 0')
+    trace_parser.add_argument('--channel', type=int, default=2,
+                              help='channel index (starts with 1) for the movie. Default: 2')
+    trace_parser.add_argument('--channel_position', type=int, default=1,
+                              help='channel position (starts with 0) for the movie. Default: 1')
+
+    # apply
+    apply_parser = subparsers.add_parser('apply', help='apply drift 3D to ZOLA table')
+    apply_parser.add_argument('zola_table', type=str, default='',
+                              help='ZOLA localization table, format ifxyz.......dxdydz')
+    apply_parser.add_argument('drift_table', type=str, default='BFCC_table.csv',
+                              help='3D drift table, format fxyz')
+    apply_parser.add_argument('--smooth', type=int, default=0, help='gaussian smoothing for the drift')
+    apply_parser.add_argument('--interpolate', type=int, default=0, help='intepolate the drift in case of frame skipping')
+
+    return parser
+
+
+def update_frame_number(table,start,skip):
+    """
+    updates frame number int the table using skip/start frames indices
+    :param table: fxyz array
+    :param start: first frame of selection
+    :param skip: every skip-th frame from selection
+    :return: table with updated frame column
+    """
+    if skip > 0:
+        if table[0,0] == 1:
+            table[:,0] -=1
+        elif table[0,0] == 0:
+            pass
+        else:
+            raise(ValueError("update_frame_number: Wrong table. Expected frame numbers starting with 0 or 1"))
+        table[:,0] *= skip
+        table[:,0] += start - 1
+        logger.info("update_frame_number: Updated frame numbers successfully")
+    return table
