@@ -1,11 +1,12 @@
 
 from skimage import io
 import traceback
-from scipy.ndimage import gaussian_filter1d as gf
 from bfdc.CrossCorrelation import *
 from bfdc.iotools import *
 from bfdc.feature import *
 from bfdc.iotools import parse_input, update_frame_number
+from scipy.ndimage import gaussian_filter1d as gf
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
