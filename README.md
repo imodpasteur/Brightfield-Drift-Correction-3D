@@ -1,5 +1,7 @@
 # Bright Field Drift Correction
 
+Use bright field signal to trace the drift in 3D with nanometer precision.
+
 ## Requirements
 * python 3.5+
 * numpy
