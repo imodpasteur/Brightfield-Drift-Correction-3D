@@ -241,9 +241,6 @@ def main():
     args = parser.parse_args()
     logger.debug(args)
 
-    ch_index = args.channel
-    ch_pos = args.channel_position
-
 
     if args.command == 'trace':
         cal_path = get_abs_path(args.dict)
@@ -255,6 +252,9 @@ def main():
         logger.info(f'Opening movie {movie_path}')
         movie = io.imread(movie_path)
         logger.info(f'Imported movie {movie.shape}')
+
+        ch_index = args.channel
+        ch_pos = args.channel_position
 
         movie = check_multi_channel(movie,channel=ch_index,channel_position=ch_pos)
         size_check = check_stacks_size_equals(cal_stack,movie)
@@ -288,7 +288,7 @@ def main():
         bf_table = open_csv_table(bf_path)
 
         if args.smooth > 0:
-            bf_table[:, 1:4] = gf(bf_table[:, 1:4], args.smooth, axis=0)
+            bf_table[:, 1:4] = gf(bf_table[:, 1:4], sigma=args.smooth, axis=0)
 
         logger.info(f'Applying drift')
         zola_table_dc = apply_drift(bf_table=bf_table, zola_table=zola_table)
