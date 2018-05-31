@@ -1,12 +1,12 @@
 
-from skimage import io
 import traceback
-from bfdc.CrossCorrelation import *
-from bfdc.iotools import *
-from bfdc.feature import *
-from bfdc.iotools import parse_input, update_frame_number
-from scipy.ndimage import gaussian_filter1d as gf
 
+from scipy.ndimage import gaussian_filter1d as gf1
+from skimage import io
+
+from bfdc.CrossCorrelation import *
+from bfdc.feature import *
+from bfdc.iotools import *
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -289,7 +289,7 @@ def main():
         bf_table = open_csv_table(bf_path)
 
         if args.smooth > 0:
-            bf_table[:, 1:4] = gf(bf_table[:, 1:4], sigma=args.smooth, axis=0)
+            bf_table[:, 1:4] = gf1(bf_table[:, 1:4], sigma=args.smooth, axis=0)
 
         logger.info(f'Applying drift')
         zola_table_dc = apply_drift(bf_table=bf_table, zola_table=zola_table)
