@@ -32,3 +32,6 @@ Acquire bright field images with the same exposure (movie.tif) in order to trace
 `python -m bfdc.Drift trace -h`
 
 `python -m bfdc.Drift apply -h`
+
+#Example of use
+![input](img/BFCC_table.csv_2zero.png)  
