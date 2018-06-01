@@ -39,7 +39,7 @@ Acquire bright field images with the same exposure (movie.tif) in order to trace
  
 ![input](img/sr_Substack%20(1-16384-1000)_l.gif) 
  
- Luckily, we have recorded the bright field movie along with the fluorescence!
+ Luckily, we have recorded the bright field movie along with the fluorescence by alternating illumination between illuimination and LED!
  
 ![input](img/bf_Substack%20(1-16384-1000)_l.gif) 
  
