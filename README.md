@@ -33,6 +33,20 @@ Acquire bright field images with the same exposure (movie.tif) in order to trace
 
 `python -m bfdc.Drift apply -h`
 
-#Example of use
+# Example of use
+ 
+ Super resolution imaging of EDU Alexa 647 in the nucleus: beads photobleaching.
+ 
+![input](img/sr_Substack%20(1-16384-1000)_l.gif) 
+ 
+ Luckily, we have recorded the bright field movie along with the fluorescence!
+ 
+![input](img/bf_Substack%20(1-16384-1000)_l.gif) 
+ 
+ How can we use it to trace the drift in 3D?
+ 
+ Using the stack, recorded prior to imaging with the same exposure and same illumination intensity, we can reveal the drift from bright field only in 3D!
 
-![input](img/BFCC_table.csv_2zero.png)  
+![input](img/dict_sr_crop.gif)
+
+![input](img/BFCC_table.csv_2zero.png) 
