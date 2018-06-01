@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Drift_full_frame" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="Drift_crop_frame_10k" type="PythonConfigurationType" factoryName="Python">
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
@@ -12,9 +12,9 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <module name="BFDC" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/bfdc/Drift.py" />
-    <option name="PARAMETERS" value="trace data/full_frame/dict_redLED_SP_100nm_1_MMStack_Pos0.ome.tif data/full_frame/sr_642_redLED_start_10_skip_10_SP_100nm_1_MMStack_Pos0.ome-100f.tif --start 10 --skip 9" />
+    <option name="PARAMETERS" value="trace data/crop_frame_10k/dict_bf_crop32.tif data/crop_frame_10k/movie_bf_crop64.tif" />
     <option name="SHOW_COMMAND_LINE" value="false" />
-    <option name="EMULATE_TERMINAL" value="true" />
+    <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />
     <method />
   </configuration>
