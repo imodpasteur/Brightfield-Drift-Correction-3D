@@ -61,6 +61,6 @@ Note, now Nikon's Perfect Focus System struggles to maintain the focus.
 
 Fluorescent bead track before and after BFDC.
 
-![input](img/bead_track_color.png) -> ![input](img/bead_track_color_BFDC.tif) 
+![input](img/bead_track_color.png) -> ![input](img/bead_track_color_BFDC.png) 
  
 
