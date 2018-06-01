@@ -5,6 +5,7 @@ import os
 import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy.ndimage import gaussian_filter1d as gf1
+import subprocess
 
 import logging
 
@@ -39,7 +40,16 @@ def get_parent_path(path):
     return os.path.abspath(os.path.join(path, os.pardir))
 
 
-def open_csv_table(path):
+def open_csv_table(path,showHeader = False):
+    """
+    Loads thunderstorm compatible csv table into numpy array
+    First line is omitted as contains header
+    :param path: path to the table.csv
+    :param showHeader: bool, shows 'head path'
+    :return: numpy array
+    """
+    if showHeader:
+        subprocess.check_output(['head','-n','1',path])
     return np.loadtxt(path, delimiter=',', skiprows=1)
 
 
