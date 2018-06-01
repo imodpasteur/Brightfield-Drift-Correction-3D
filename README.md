@@ -58,3 +58,9 @@ Movie crop ![input](img/bf_Substack%20(1-16384-1000)_crop32l.gif)
 Note, now Nikon's Perfect Focus System struggles to maintain the focus.
 
 ![input](img/BFCC_table.csv_2zero.png) 
+
+Fluorescent bead track before and after BFDC.
+
+![input](img/bead_track_color.png) -> ![input](img/bead_track_color_BFDC.tif) 
+ 
+
