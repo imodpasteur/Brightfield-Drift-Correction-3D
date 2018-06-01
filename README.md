@@ -49,6 +49,11 @@ Acquire bright field images with the same exposure (movie.tif) in order to trace
 
 ![input](img/dict_sr_crop.gif)
 
+32x32 px crom form the dictionary and 64x64 crom form the movie tracks the drift with the precision higher than using beads and better sampling than redundant cross-corellation.
+![input](img/dict_crop32.gif)
+![input](img/bf_Substack%20(1-16384-1000)_crop32l.gif)
+
+
 Note, now Nikon's Perfect Focus System struggles to maintain the focus.
 
 ![input](img/BFCC_table.csv_2zero.png) 
