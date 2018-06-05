@@ -98,11 +98,13 @@ def smooth_drift_table(table, sigma):
 
 
 def check_stacks_size_equals(cal_stack,movie):
-    if np.ndim(cal_stack) == np.ndim(movie) == 3:
+    logger.info(f'check_stacks_size_equals: Input shapes {cal_stack.shape,movie.shape}')
+    if len(cal_stack.shape) == len(movie.shape) == 3:
         x1,x2 = cal_stack.shape[1],cal_stack.shape[2]
         y1,y2 = movie.shape[1],movie.shape[2]
         return x1 == y1 and x2 == y2
-
+    else:
+        raise(ValueError('cal_stack.shape: wrong shapes!'))
 
 
 def check_multi_channel(movie,channel = 2, channel_position = 1):
@@ -114,7 +116,7 @@ def check_multi_channel(movie,channel = 2, channel_position = 1):
     :return: numpy array zxy
     """
     logger.info(f'check_multi_channel: Input shape {movie.shape}')
-    ndim = np.ndim(movie)
+    ndim = len(movie.shape)
     if ndim == 3:
         logger.info(f'check_multi_channel: Returning shape {movie.shape}')
         return movie
@@ -129,10 +131,23 @@ def check_multi_channel(movie,channel = 2, channel_position = 1):
         raise(TypeError(f'check_multi_channel: channel order not understood, movie shape {movie.shape}'))
 
 
-def skip_stack(movie,start,skip,nframes):
+def skip_stack(n_frames,start,skip,nframes):
+    """
+    Now works with virtual stack
+    :param movie: np.array-like object with __get_item__ method and n_frames properties
+    :param start: in case of skipping: first frame to pick up (starts form 1)
+    :param skip: number of frames skipped to get the right frame (for example, ch2 with alternating illumination refers to start=2,skip=1)
+    :param nframes: maximum number of frames
+    :return: movie, index list
+    """
+    logger.info('skip_stack: starting frame skipping routines')
+
+    index_list = np.arange(n_frames)
     if start > 0:
         start = start - 1
-    return movie[start:nframes:skip+1]
+    frame_list = index_list[start:nframes:skip+1]
+    logger.info(f'skip_stack: returning frame list with {len(frame_list)} frames')
+    return frame_list
 
 
 def parse_input():
@@ -147,6 +162,8 @@ def parse_input():
     trace_parser = subparsers.add_parser('trace', help='identify drift in 3D')
     trace_parser.add_argument('dict', type=str, default='data/LED_stack_full_100nm.tif',
                               help='calibration stack file')
+    trace_parser.add_argument('roi', type=str, default='',
+                              help='calibration file roi from ImageJ')
     trace_parser.add_argument('movie', type=str, default='data/sr_2_LED_movie.tif',
                               help='movie stack file')
     trace_parser.add_argument('-z', '--zstep', type=int, default=100, help='z-step in nm. Default: 100')
