@@ -9,7 +9,7 @@ from scipy.ndimage import gaussian_filter as gf
 from skimage import filters
 import matplotlib.pyplot as plt
 from bfdc.CrossCorrelation import get_abs_max
-
+from read_roi import read_roi_file
 
 
 class FeatureExtractor:
@@ -59,12 +59,10 @@ class FeatureExtractor:
             plt.show()
 
 
-def get_mask_otsu(image,invert):
+def get_mask_otsu(image):
     val = filters.threshold_otsu(image)
-    if invert:
-        mask = image < val
-    else:
-        mask = image > val
+
+    mask = image > val
     return mask
 
 
@@ -143,7 +141,7 @@ def crop_2d_using_xy_boundaries(mask, boundaries):
 
 def crop_using_xy_boundaries(mask, boundaries,extend=0):
     """
-    :mask: any 2D dataset
+    :mask: any 2D or 3D dataset
     :boundaries: dict{xmin,xmax,ymin,ymax}
     :return: cropped mask
     """
@@ -176,3 +174,12 @@ def get_grad(varray):
     vgrad = np.gradient(varray)
     fulgrad = np.sqrt(vgrad[0] ** 2 + vgrad[1] ** 2)
     return fulgrad
+
+
+def read_roi(path):
+    return read_roi_file(path)
+
+
+def roi_to_boundaries(roi):
+    roi = roi[list(roi)[0]]
+    return dict(xmin = roi['left'],xmax = roi['left'] + roi['width'], ymin =  roi['top'], ymax =  roi['top'] + roi['height'])
