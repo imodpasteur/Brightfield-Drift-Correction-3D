@@ -1,4 +1,9 @@
+"""
+TODO: Split track and apply functionality
+TODO: Pass args to main
+TODO: Integrity test
 
+"""
 import traceback
 
 from scipy.ndimage import gaussian_filter1d as gf1
@@ -7,8 +12,9 @@ from skimage import io
 from bfdc.CrossCorrelation import *
 from bfdc.feature import *
 from bfdc.iotools import *
+from picasso import io as pio
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class WrongCrop(Exception):
@@ -20,17 +26,18 @@ class DriftFitter:
     Crops the stack and tracks the drift
     """
 
-    def __init__(self, feature: FeatureExtractor):
-        self.boundaries = feature.boundaries
-        self.dict = feature.get_crop()
+    def __init__(self, dict, roi):
+        self.boundaries = roi_to_boundaries(roi)
+        self.dict = crop_using_xy_boundaries(dict,boundaries=self.boundaries)
         self.z_crop = (0, -1)
         self.x_correction = 0
         self.y_correction = 0
         self.zCenter = len(self.dict)//2
         self.radius_xy = 4
 
-    def doTrace(self, movie, extend_xy=5,debug=False):
+    def doTrace(self, movie, frame_list, extend_xy=5,debug=False):
         self.movie = movie
+        self.frame_list = frame_list
         logging.info(f"doTrace: got the movie with shape {movie.shape}")
         self.extend_xy = extend_xy
         # for i,frame in enumerate(movie):
@@ -48,7 +55,8 @@ class DriftFitter:
         total = len(movie)
         problems = []
         try:
-            for i, frame in enumerate(movie):
+            for i in self.frame_list:
+                frame = self.movie[i]
                 logging.debug(f'frame {i+1}')
                 crop_frame = crop_using_xy_boundaries(frame, b, extend=self.extend_xy)
 
@@ -91,8 +99,8 @@ class DriftFitter:
             return np.array(out)
 
     def update_z_crop(self, z):
-        z1, z2 = int(z - 5), int(z + 7)
-        logging.debug(f'z boundaries {z1},{z2}')
+        z1, z2 = np.max([0,int(z - 5)]), np.min([int(z + 7),len(self.dict)-1])
+        logger.debug(f'update_z_crop:z boundaries {z1},{z2}')
         self.z_crop = (z1, z2)
 
     def crop_dict(self):
@@ -116,7 +124,7 @@ class DriftFitter:
             self.y_correction += ydif
 
 
-def get_drift_3d(movie, cal_stack, debug=False):
+def get_drift_3d(movie,frame_list, cal_stack, debug=False):
     """
     Computes drift on the movie vs cal_staack in 3D
     :param movie: time series stack
@@ -128,7 +136,8 @@ def get_drift_3d(movie, cal_stack, debug=False):
     total = len(movie)
     problems = []
     try:
-        for i, frame in enumerate(movie):
+        for i in frame_list:
+            frame = movie[i]
             cc = cc_stack(frame, cal_stack)
             # out.append(cc_max(cc))
             x, y, z = fit_gauss_3d(cc, debug=debug)
@@ -162,8 +171,9 @@ def trace_drift(args, cal_stack, movie, debug = False):
 
     print(f'Pixel size xyz: {px}')
     drift_px = np.zeros(4)
+    movie,frame_list = skip_stack(movie,start=start,skip=skip,nframes=nframes)
     try:
-        drift_px = get_drift_3d(skip_stack(movie,start=start,skip=skip,nframes=nframes), cal_stack, debug=debug)
+        drift_px = get_drift_3d(movie= movie,frame_list= frame_list, cal_stack= cal_stack, debug= debug)
     except KeyboardInterrupt as e:
         print(e)
 
@@ -173,11 +183,11 @@ def trace_drift(args, cal_stack, movie, debug = False):
     return drift_nm
 
 
-def trace_drift_auto(args, cal_stack, movie,debug=False):
+def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
     """
     Computes 3D drift on the movie vs cal_stack with auto crop
     :param args: dict[args.xypixel, args.zstep]
-    :param cal_stack: 3d stack dictionary
+    :param cal_stack: 3d z-stack
     :param movie: time series 3D stack
     :return: table[frame,x,y,z] in nm
     """
@@ -192,19 +202,17 @@ def trace_drift_auto(args, cal_stack, movie,debug=False):
     drift_px = np.zeros((1,4))
     drift_nm = np.zeros((1,4))
 
-    crop = FeatureExtractor(cal_stack)
-    crop_stack = crop.crop_stack
-    print(f'Cropped dictionary with {crop_stack.shape} pixels')
-    fitter = DriftFitter(crop)
+    fitter = DriftFitter(cal_stack,roi)
 
+    frame_list = skip_stack(movie.n_frames,start=start,skip=skip,nframes=nframes)
     try:
-        drift_px = fitter.doTrace(skip_stack(movie, start=start, skip=skip, nframes=nframes),debug=debug)
+        drift_px = fitter.doTrace(movie,frame_list=frame_list,debug=debug)
     except KeyboardInterrupt as e:
         print(e)
 
     drift_nm = drift_px.copy()
     drift_nm[:, 1:] = drift_px[:, 1:] * px
-    drift_nm = update_frame_number(drift_nm, start, skip)
+    #drift_nm = update_frame_number(drift_nm, start, skip)
     return drift_nm
 
 
@@ -237,32 +245,40 @@ def apply_drift(zola_table, bf_table):
     return zola_table_dc
 
 
-def main():
+def mymain(myargs=None):
     parser = parse_input()
-    args = parser.parse_args()
+    if myargs == None:
+        args = parser.parse_args(myargs)
+    else:
+        args = parser.parse_args()
     logger.debug(args)
 
 
     if args.command == 'trace':
         cal_path = get_abs_path(args.dict)
-        logger.info(f'Opening calibration {cal_path}')
+        logger.info(f'\nOpening calibration {args.dict}')
         cal_stack = io.imread(cal_path)
         logger.info(f'Imported dictionary {cal_stack.shape}')
 
+        roi_path = get_abs_path(args.roi)
+        logger.info(f'\nOpening roi {args.roi}')
+        roi = read_roi(roi_path)
+
         movie_path = get_abs_path(args.movie)
-        logger.info(f'Opening movie {movie_path}')
-        movie = io.imread(movie_path)
+        logger.info(f'\nOpening movie {args.movie}')
+        #movie = io.imread(movie_path)
+        movie,[info] = pio.load_movie(movie_path)
         logger.info(f'Imported movie {movie.shape}')
 
         ch_index = args.channel
         ch_pos = args.channel_position
 
-        movie = check_multi_channel(movie,channel=ch_index,channel_position=ch_pos)
+        #movie = check_multi_channel(movie,channel=ch_index,channel_position=ch_pos)
         size_check = check_stacks_size_equals(cal_stack,movie)
 
         if size_check == True:
             logger.info('Stack and movie of equal sizes, attempting auto crop')
-            drift_ = trace_drift_auto(args, cal_stack, movie,debug=False)
+            drift_ = trace_drift_auto(args=args, cal_stack=cal_stack, movie=movie, roi=roi, debug=True)
         elif size_check == False:
             logger.info('Stack and movie of different sizes, running on full size')
             drift_ = trace_drift(args,cal_stack,movie)
@@ -306,4 +322,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    mymain()
