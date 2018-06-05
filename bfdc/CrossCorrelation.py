@@ -5,14 +5,21 @@ import matplotlib.pyplot as plt
 from skimage.feature import match_template
 
 import logging
+logger = logging.getLogger(__name__)
 
 
 class LowXCorr(Exception):
     pass
 
 
-def get_abs_max(cc_out):
-    return np.unravel_index(np.argmax(cc_out), cc_out.shape)
+def get_abs_max(data):
+    """
+    peaks up absolute maximum position in the stack/ 2D image
+    First dimension comes first
+    :param data: np.array
+    :return: abs max coordinates in data.shape format
+    """
+    return np.unravel_index(np.argmax(data), data.shape)
 
 
 def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
@@ -26,7 +33,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
     except ImportError:
         raise ImportError('Missing gaussfit.py. Please download one from Zhuanglab Github')
     #cut_stack = np.zeros((1, 1, 1))
-    assert np.ndim(stack) == 3, print(f'wrong stack shape {stack.shape}')
+    assert np.ndim(stack) == 3, logger.error(f'fit_gauss_3d: input stack shape is wrong, expected 3 dim, got {stack.shape}')
 
     if debug:
         plt.imshow(stack.max(axis=0))
@@ -126,13 +133,32 @@ def cc_template(image, template, plot=False):
 
 
 
-def cc_stack(image, stack):
+def cc_stack(image, stack, plot=False):
     image = np.array(image - np.mean(image), dtype='f')
     stack = np.array(stack - np.mean(stack), dtype='f')
     out = []
     for i, t in enumerate(stack):
         out.append(cc_template(image, t))
-    return np.array(out)
+    out = np.array(out)
+    if plot:
+        fig = plt.figure(figsize=(6,2))
+
+        fig.add_subplot(131)
+        plt.imshow(out.max(axis=0))
+        plt.title('max xy')
+        plt.colorbar()
+
+        fig.add_subplot(132)
+        plt.imshow(out.max(axis=1))
+        plt.title('max zx')
+        plt.colorbar()
+
+        fig.add_subplot(133)
+        plt.imshow(out.max(axis=2))
+        plt.title('max zy')
+        plt.colorbar()
+        plt.show()
+    return out
 
 
 def cc_max(cc_out):
