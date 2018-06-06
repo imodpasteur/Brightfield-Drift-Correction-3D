@@ -2,6 +2,7 @@ from unittest import TestCase
 import numpy as np
 from bfdc.iotools import check_stacks_size_equals, check_multi_channel,skip_stack
 import logging
+from picasso import io as pio
 
 logger = logging.getLogger(__name__)
 
@@ -41,22 +42,31 @@ class TestCheck_stacks_size_equals(TestCase):
 
 
 class TestSkip_stack(TestCase):
+
     def test_skip_stack_default(self):
-        stack = np.zeros((100,15,15))
+
+        #stack = np.zeros((100,15,15))
+        stack,[info] = pio.load_movie('LED_stack_full_100nm.tif')
         input = stack.shape
+        n_frames = stack.n_frames
+        expected_index_list = list(np.arange(n_frames))
+        print(f'input shape {input}')
         start = 0
         skip = 0
         nframes = None
-        out = skip_stack(stack,start=start,skip=skip,nframes=nframes).shape
-        self.assertTupleEqual(input,out,msg=f"test_skip_stack_default: {input}, {out}")
+        new_stack,index_list = skip_stack(stack,start=start,skip=skip,nframes=nframes)
+        self.assertListEqual(expected_index_list,list(index_list),msg=f"test_skip_stack_default: {input}, {len(index_list)}")
 
     def test_skip_stack_skipping10(self):
-        stack = np.zeros((100, 15, 15))
+        stack, [info] = pio.load_movie('../data/crop_frame/sr_2_LED_movie.tif')
         input = stack.shape
         start = 10
         skip = 9
         nframes = None
-        out = skip_stack(stack, start=start, skip=skip, nframes=nframes).shape
-        expected = (10,15,15)
-        self.assertTupleEqual(out, expected, msg=f"test_skip_stack_default: {out}, {expected}")
+        n_frames = stack.n_frames
+        expected_index_list = list(np.arange(start-1,n_frames,skip+1))
+        print(f'input shape {input}')
+        new_stack, index_list = skip_stack(stack, start=start, skip=skip, nframes=nframes)
+        self.assertListEqual(expected_index_list, list(index_list),
+                             msg=f"test_skip_stack_default: {input}, {len(index_list)}")
 
