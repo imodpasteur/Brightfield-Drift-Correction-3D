@@ -38,7 +38,7 @@ class DriftFitter:
     def doTrace(self, movie, frame_list, extend_xy=5,debug=False):
         self.movie = movie
         self.frame_list = frame_list
-        logging.info(f"doTrace: got the movie with shape {movie.shape}")
+        logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
         self.extend_xy = extend_xy
         # for i,frame in enumerate(movie):
         # crop frame with extended by 5px boundaries
