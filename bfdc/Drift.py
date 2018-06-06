@@ -52,10 +52,10 @@ class DriftFitter:
         yc = np.mean([b["ymax"],-b["ymin"]])
         out = np.empty((0,4))
         x_, y_, z_ = 0, 0, 0
-        total = len(movie)
+        total = len(self.frame_list)
         problems = []
         try:
-            for i in self.frame_list:
+            for i,f in enumerate(self.frame_list):
                 frame = self.movie[i]
                 logging.debug(f'frame {i+1}')
                 crop_frame = crop_using_xy_boundaries(frame, b, extend=self.extend_xy)
@@ -212,7 +212,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
 
     drift_nm = drift_px.copy()
     drift_nm[:, 1:] = drift_px[:, 1:] * px
-    #drift_nm = update_frame_number(drift_nm, start, skip)
+    drift_nm = update_frame_number(drift_nm, start, skip)
     return drift_nm
 
 
