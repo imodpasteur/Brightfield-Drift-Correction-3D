@@ -14,7 +14,7 @@ from bfdc.feature import *
 from bfdc.iotools import *
 from picasso import io as pio
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class WrongCrop(Exception):
@@ -51,7 +51,7 @@ class DriftFitter:
         xc = np.mean([b["xmax"],-b["xmin"]])
         yc = np.mean([b["ymax"],-b["ymin"]])
         out = np.empty((0,4))
-        x_, y_, z = 0, 0, 0
+        x_, y_, z_ = 0, 0, 0
         total = len(movie)
         problems = []
         try:
@@ -83,7 +83,7 @@ class DriftFitter:
         except LowXCorr as e:
             logging.warning(f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
             if len(out):
-                out = np.append(out, np.array([i + 1, x_, y_, z]).reshape((1, 4)), axis=0)
+                out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
             problems.append(i + 1)
 
         except Exception as e:
@@ -278,7 +278,7 @@ def mymain(myargs=None):
 
         if size_check == True:
             logger.info('Stack and movie of equal sizes, attempting auto crop')
-            drift_ = trace_drift_auto(args=args, cal_stack=cal_stack, movie=movie, roi=roi, debug=True)
+            drift_ = trace_drift_auto(args=args, cal_stack=cal_stack, movie=movie, roi=roi, debug=False)
         elif size_check == False:
             logger.info('Stack and movie of different sizes, running on full size')
             drift_ = trace_drift(args,cal_stack,movie)
@@ -302,6 +302,7 @@ def mymain(myargs=None):
 
         logger.info(f'Opening data')
         zola_table = open_csv_table(zola_path)
+        logger.info(f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
         bf_table = open_csv_table(bf_path)
 
         if args.smooth > 0:
