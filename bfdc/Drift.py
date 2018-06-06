@@ -56,7 +56,7 @@ class DriftFitter:
         problems = []
         try:
             for i,f in enumerate(self.frame_list):
-                frame = self.movie[i]
+                frame = self.movie[f]
                 logging.debug(f'frame {i+1}')
                 crop_frame = crop_using_xy_boundaries(frame, b, extend=self.extend_xy)
 
