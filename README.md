@@ -19,11 +19,13 @@ In order to trace the drift in 3D a calibration stack needed (dict.tif).
 
 Acquire bright field images with the same exposure (movie.tif) in order to trace the drift with nanometer precision.
 
+You'll need to select a contrast region say 32x32 picels from the dict.tif and save as crop.roi (ImageJ ROI format)
+
 ### Tracing drift:
-`python -m bfdc.Drift trace dict.tif movie.tif`
+`python -m bfdc.Drift trace dict.tif crop.roi movie.tif`
 
 ### Applying drift to ZOLA table:
-`python -m bfdc.Drift trace ZOLA_localization_table.csv BFCC_table.csv`
+`python -m bfdc.Drift trace ZOLA_localization_table.csv BFCC_table.csv --smooth 10`
 
 ### Help and possible arguments:
 
@@ -55,7 +57,7 @@ Stack crop ![input](img/dict_crop32.gif)
 Movie crop ![input](img/bf_Substack%20(1-16384-1000)_crop32l.gif)
 
 
-Note, now Nikon's Perfect Focus System struggles to maintain the focus.
+Note, how Nikon's Perfect Focus System struggles to maintain the focus!
 
 ![input](img/BFCC_table.csv_2zero.png) 
 
