@@ -1,2 +1,3 @@
+scikit-image
 read-roi
 picasso
