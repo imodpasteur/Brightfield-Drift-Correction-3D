@@ -114,9 +114,11 @@ class DriftFitter:
         e = extend
         x0 = (b['xmax'] - b['xmin']) / 2 + e
         y0 = (b['ymax'] - b['ymin']) / 2 + e
-        xdif = int(np.round(x - x0, decimals=0))
-        ydif = int(np.round(y - y0, decimals=0))
-        if abs(xdif) > 0 or abs(ydif) > 0:
+        xdif_ = x - x0
+        ydif_ = y - y0
+        xdif = int(np.round(xdif_, decimals=0))
+        ydif = int(np.round(ydif_, decimals=0))
+        if abs(xdif_) > 0.8 or abs(ydif_) > 0.8:
             logging.debug(f'moving xy boundary by {xdif},{ydif}')
             b['xmin'] += xdif
             b['xmax'] += xdif
