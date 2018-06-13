@@ -235,7 +235,10 @@ def move_drift_to_zero(drift_nm, ref_average=10):
     return drift_
 
 
-def apply_drift(zola_table, bf_table):
+def apply_drift(zola_table, bf_table, start=None, skip=None, smooth = 10):
+
+    bf_table = interpolate_drift_table(bf_table,start=start, skip=skip, smooth=smooth)
+
     zola_frame_num = len(np.unique(zola_table[:, 1]))
 
     bf_frame_num = len(np.unique(bf_table[:, 0]))
@@ -250,6 +253,8 @@ def apply_drift(zola_table, bf_table):
 
     frame_nums = np.array(zola_table[:, 1], dtype='int')
     bf_drift_framed = bf_table[frame_nums - 1]
+
+    #bf_drift_framed[:,3] = -1 * bf_drift_framed[:,3]
 
     zola_table_dc = zola_table.copy()
     zola_table_dc[:, [2, 3, 4]] = zola_table_dc[:, [2, 3, 4]] - bf_drift_framed[:, [1, 2, 3]]
@@ -319,7 +324,7 @@ def mymain(myargs=None):
             bf_table[:, 1:4] = gf1(bf_table[:, 1:4], sigma=args.smooth, axis=0)
 
         logger.info(f'Applying drift')
-        zola_table_dc = apply_drift(bf_table=bf_table, zola_table=zola_table)
+        zola_table_dc = apply_drift(bf_table=bf_table, zola_table=zola_table, start=args.start, skip=args.skip)
 
         path = os.path.splitext(zola_path)[0] + f'_BFDC_smooth_{args.smooth}.csv'
         logger.info(f'saving results to {path}')
