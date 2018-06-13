@@ -70,18 +70,28 @@ def save_drift_plot(table, path):
     logger.info(f"Saved drift plot to {path}")
 
 
-def interpolate_drift_table(table_fxyz, start, skip, smooth=10):
-    w = table_fxyz.shape[1]
+def interpolate_drift_table(table, start=0, skip=0, smooth=10):
+    """
+    Smooth and interpolate a table
+    :param table: fxyz (nm) array
+    :param start: in case of renumbering needed : first frame
+    :param skip: how many frame were skipped
+    :param smooth: gaussian smoothing sigma
+    :return: interpolated table
+    """
+    w = table.shape[1]
     if smooth > 0:
-        table_fxyz = smooth_drift_table(table_fxyz, sigma=smooth)
+        table = smooth_drift_table(table, sigma=smooth)
 
-    time = table_fxyz[:, 0]
+    table = update_frame_number(table, start=start, skip=skip)
+
+    time = table[:, 0]
     # print(time.shape)
     timeNew = np.arange(1, max(time) + 1)
     newTable = np.zeros((len(timeNew), w))
     newTable[:, 0] = timeNew
     for col in range(1, w):
-        y = table_fxyz[:, col]
+        y = table[:, col]
         # print(y.shape)
         f = interpolate.interp1d(time, y, fill_value='extrapolate')
         ynew = f(timeNew)
@@ -186,8 +196,12 @@ def parse_input():
                               help='ZOLA localization table, format ifxyz.......dxdydz')
     apply_parser.add_argument('drift_table', type=str, default='BFCC_table.csv',
                               help='3D drift table, format fxyz')
+    apply_parser.add_argument('--skip', type=int, default=0,
+                              help='how many frames to skip form the movie. Default: 0')
+    apply_parser.add_argument('--start', type=int, default=0,
+                              help='how many frames to skip in the beginning of the movie. Default: 0')
+
     apply_parser.add_argument('--smooth', type=int, default=0, help='gaussian smoothing for the drift')
-    apply_parser.add_argument('--interpolate', type=int, default=0, help='intepolate the drift in case of frame skipping')
 
     return parser
 
