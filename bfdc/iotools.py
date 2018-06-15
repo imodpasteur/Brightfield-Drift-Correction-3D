@@ -160,6 +160,27 @@ def skip_stack(n_frames, start, skip, maxframes):
     return index_list
 
 
+def update_frame_number(table,start,skip):
+    """
+    updates frame number int the table using skip/start frames indices
+    :param table: fxyz array
+    :param start: first frame of selection
+    :param skip: every skip-th frame from selection
+    :return: table with updated frame column
+    """
+    if skip > 0:
+        if table[0,0] == 1:
+            table[:,0] -=1
+        elif table[0,0] == 0:
+            pass
+        else:
+            raise(ValueError("update_frame_number: Wrong table. Expected frame numbers starting with 0 or 1"))
+        table[:,0] *= skip
+        table[:,0] += start - 1
+        logger.info("update_frame_number: Updated frame numbers successfully")
+    return table
+
+
 def parse_input():
     # Main parser
     parser = argparse.ArgumentParser('BFDC')
@@ -206,22 +227,3 @@ def parse_input():
     return parser
 
 
-def update_frame_number(table,start,skip):
-    """
-    updates frame number int the table using skip/start frames indices
-    :param table: fxyz array
-    :param start: first frame of selection
-    :param skip: every skip-th frame from selection
-    :return: table with updated frame column
-    """
-    if skip > 0:
-        if table[0,0] == 1:
-            table[:,0] -=1
-        elif table[0,0] == 0:
-            pass
-        else:
-            raise(ValueError("update_frame_number: Wrong table. Expected frame numbers starting with 0 or 1"))
-        table[:,0] *= skip
-        table[:,0] += start - 1
-        logger.info("update_frame_number: Updated frame numbers successfully")
-    return table

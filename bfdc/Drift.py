@@ -12,7 +12,7 @@ from skimage import io
 from bfdc.CrossCorrelation import *
 from bfdc.feature import *
 from bfdc.iotools import *
-from picasso import io as pio
+import bfdc.picassoio as pio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
