@@ -54,7 +54,7 @@ class TestSkip_stack(TestCase):
         start = 0
         skip = 0
         nframes = None
-        new_stack,index_list = skip_stack(stack,start=start,skip=skip,nframes=nframes)
+        new_stack,index_list = skip_stack(stack, start=start, skip=skip, maxframes=nframes)
         self.assertListEqual(expected_index_list,list(index_list),msg=f"test_skip_stack_default: {input}, {len(index_list)}")
 
     def test_skip_stack_skipping10(self):
@@ -66,7 +66,7 @@ class TestSkip_stack(TestCase):
         n_frames = stack.n_frames
         expected_index_list = list(np.arange(start-1,n_frames,skip+1))
         print(f'input shape {input}')
-        new_stack, index_list = skip_stack(stack, start=start, skip=skip, nframes=nframes)
+        new_stack, index_list = skip_stack(stack, start=start, skip=skip, maxframes=nframes)
         self.assertListEqual(expected_index_list, list(index_list),
                              msg=f"test_skip_stack_default: {input}, {len(index_list)}")
 

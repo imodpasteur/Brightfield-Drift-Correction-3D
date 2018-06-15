@@ -109,7 +109,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
         plt.legend()
         plt.show()
 
-    return [x_found, y_found, z_found]
+    return [x_found, y_found, z_found, good]
 
 
 def cc_template(image, template, plot=False):

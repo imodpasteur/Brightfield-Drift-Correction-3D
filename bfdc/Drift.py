@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 class WrongCrop(Exception):
     pass
 
+class BadGaussFit(Exception):
+    pass
+
 
 class DriftFitter:
     """
@@ -67,11 +70,17 @@ class DriftFitter:
                 crop_dict = self.crop_dict()
                 cc = cc_stack(crop_frame, crop_dict)
                 # out.append(cc_max(cc))
-                x, y, z = fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20, debug=debug)
+                try:
+                    x, y, z, good = fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20, debug=debug)
+                except:
+                    raise(ValueError('unable to unpack fit_gauss_3d output'))
 
-                z_ = z + self.z_crop[0] - self.zCenter
-                x_ = x + self.x_correction - xc - self.radius_xy
-                y_ = y + self.y_correction - yc - self.radius_xy
+                if not good:
+                    logger.warning(f'Bad gauss fit in frame {i+1}')
+                else:
+                    z_ = z + self.z_crop[0] - self.zCenter
+                    x_ = x + self.x_correction - xc - self.radius_xy
+                    y_ = y + self.y_correction - yc - self.radius_xy
                 logger.debug(f"x_px = {x}, y_px = {y}, \
                                             x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
@@ -82,7 +91,7 @@ class DriftFitter:
 
                 print('\r{}/{}'.format(i + 1, total), end=' ')
 
-        except LowXCorr:
+        except [LowXCorr, BadGaussFit]:
             logging.warning(f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
             if len(out):
                 out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
@@ -146,7 +155,7 @@ def get_drift_3d(movie, frame_list, cal_stack, debug=False):
             frame = movie[i]
             cc = cc_stack(frame, cal_stack)
             # out.append(cc_max(cc))
-            x, y, z = fit_gauss_3d(cc, debug=debug)
+            x, y, z, good = fit_gauss_3d(cc, debug=debug)
             out.append([i + 1, x, y, -z])
             print('\r{}/{}'.format(i + 1, total), end=' ')
     except Exception as e:
@@ -179,7 +188,7 @@ def trace_drift(args, cal_stack, movie, debug=False):
 
     print(f'Pixel size xyz: {px}')
     drift_px = np.zeros(4)
-    movie, frame_list = skip_stack(movie, start=start, skip=skip, nframes=nframes)
+    movie, frame_list = skip_stack(movie, start=start, skip=skip, maxframes=nframes)
     try:
         drift_px = get_drift_3d(movie=movie, frame_list=frame_list, cal_stack=cal_stack, debug=debug)
     except KeyboardInterrupt as e:
@@ -212,7 +221,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
 
     fitter = DriftFitter(cal_stack, roi)
 
-    frame_list = skip_stack(movie.n_frames, start=start, skip=skip, nframes=nframes)
+    frame_list = skip_stack(movie.n_frames, start=start, skip=skip, maxframes=nframes)
     try:
         drift_px = fitter.doTrace(movie, frame_list=frame_list, debug=debug)
     except KeyboardInterrupt as e:
@@ -318,8 +327,7 @@ def mymain(myargs=None):
 
         logger.info(f'Opening data')
         zola_table = open_csv_table(zola_path)
-        logger.info(f'Zola table contains {len(zola_table)} localizations \
-                    from {len(np.unique(zola_table[:,1]))} frames')
+        logger.info(f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
         bf_table = open_csv_table(bf_path)
 
         if args.smooth > 0:
