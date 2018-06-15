@@ -210,7 +210,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
     :param roi: readout of IJ roi file
     :return: table[frame,x,y,z] in nm
     """
-    print("tracing drift with automatic feature detection!")
+    print("Tracing drift using ROI")
     px = [args.xypixel, args.xypixel, args.zstep]
     skip = args.skip
     start = args.start
@@ -304,7 +304,7 @@ def mymain(myargs=None):
         size_check = check_stacks_size_equals(cal_stack, movie)
 
         if size_check:
-            logger.info('Stack and movie of equal sizes, attempting auto crop')
+            logger.info('Stack and movie of equal sizes')
             drift_ = trace_drift_auto(args=args, cal_stack=cal_stack, movie=movie, roi=roi, debug=False)
         else:
             logger.info('Stack and movie of different sizes, running on full size')

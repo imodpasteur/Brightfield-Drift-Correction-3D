@@ -20,7 +20,7 @@ def save_table(table, path: str, fmt: str = 'drift_table'):
     if fmt == 'drift_table':
         try:
             logger.info(f'Saving results to {path}')
-            np.savetxt(path, table, fmt='%.1f', delimiter=',', comments='', newline='\r\n',
+            np.savetxt(path+".csv", table, fmt='%.1f', delimiter=',', comments='', newline='\r\n',
                        header='"frame","x [nm]","y [nm]","z [nm]"')
             print('')
         except IOError as e:
@@ -179,7 +179,7 @@ def parse_input():
     trace_parser.add_argument('-z', '--zstep', type=int, default=100, help='z-step in nm. Default: 100')
     trace_parser.add_argument('-xypx', '--xypixel', type=int, default=110, help='xy pixel size in nm. Default: 110')
     trace_parser.add_argument('--nframes', type=int, default=None, help='now many frames to analyse from the movie. Default: None')
-    trace_parser.add_argument('--driftFileName', type=str, default='BFCC_table.csv',
+    trace_parser.add_argument('--driftFileName', type=str, default='BFCC_table',
                               help='filename for the drift table. Default: "BFCC_table.csv"')
     trace_parser.add_argument('--skip', type=int, default=0,
                               help='how many frames to skip form the movie. Default: 0')
