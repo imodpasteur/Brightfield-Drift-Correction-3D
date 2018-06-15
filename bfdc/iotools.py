@@ -141,23 +141,23 @@ def check_multi_channel(movie,channel = 2, channel_position = 1):
         raise(TypeError(f'check_multi_channel: channel order not understood, movie shape {movie.shape}'))
 
 
-def skip_stack(n_frames,start,skip,nframes):
+def skip_stack(n_frames, start, skip, maxframes):
     """
     Now works with virtual stack
-    :param movie: np.array-like object with __get_item__ method and n_frames properties
+    :param n_frames: total frame number
     :param start: in case of skipping: first frame to pick up (starts form 1)
     :param skip: number of frames skipped to get the right frame (for example, ch2 with alternating illumination refers to start=2,skip=1)
-    :param nframes: maximum number of frames
-    :return: movie, index list
+    :param maxframes: maximum number of frames in case of cropped dataset
+    :return: index list
     """
-    logger.info('skip_stack: starting frame skipping routines')
+    #logger.info('skip_stack: starting frame skipping routines')
 
     index_list = np.arange(n_frames)
     if start > 0:
         start = start - 1
-    frame_list = index_list[start:nframes:skip+1]
-    logger.info(f'skip_stack: returning frame list with {len(frame_list)} frames')
-    return frame_list
+        index_list = index_list[start:maxframes:skip + 1]
+        logger.info(f'skip_stack: returning frame list with {len(index_list)} frames')
+    return index_list
 
 
 def parse_input():
