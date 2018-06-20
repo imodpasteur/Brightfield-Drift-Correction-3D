@@ -43,7 +43,9 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
     z_px, y_px, x_px = get_abs_max(stack)
     cc_value = np.max(stack)
     if cc_value < 0.2:
-        raise(LowXCorr("fit_gauss_3d: Cross corellation value os too low!"))
+        #raise(LowXCorr("fit_gauss_3d: Cross corellation value os too low!"))
+        logger.warning("fit_gauss_3d: Cross corellation value os too low!")
+        return [0, 0, 0, False]
 
     if debug:
         print([z_px, y_px, x_px])

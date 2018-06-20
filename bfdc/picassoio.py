@@ -10,7 +10,6 @@
 import os.path as _ospath
 import numpy as _np
 import yaml as _yaml
-import glob as _glob
 import re as _re
 import struct as _struct
 import json as _json
@@ -18,13 +17,11 @@ import os as _os
 import threading as _threading
 
 
-
 class NoMetadataFileError(FileNotFoundError):
     pass
 
 
-
-def multiple_filenames(path, index):
+def multiple_filenames(path: str, index: object) -> object:
     base, ext = _ospath.splitext(path)
     filename = base + '_' + str(index) + ext
     return filename
@@ -51,15 +48,13 @@ def load_info(path, qt_parent=None):
             info = list(_yaml.load_all(info_file))
     except FileNotFoundError as e:
         print('\nAn error occured. Could not find metadata file:\n{}'.format(filename))
-        #if qt_parent is not None:
-            #_QMessageBox.critical(qt_parent, 'An error occured', 'Could not find metadata file:\n{}'.format(filename))
+        # if qt_parent is not None:
+        # _QMessageBox.critical(qt_parent, 'An error occured', 'Could not find metadata file:\n{}'.format(filename))
         raise NoMetadataFileError(e)
     return info
 
 
-
 class TiffMap:
-
     TIFF_TYPES = {1: 'B', 2: 'c', 3: 'H', 4: 'L', 5: 'RATIONAL'}
     TYPE_SIZES = {'c': 1, 'B': 1, 'h': 2, 'H': 2, 'i': 4, 'I': 4, 'L': 4, 'RATIONAL': 8}
 
@@ -86,13 +81,13 @@ class TiffMap:
                 self.height = self.read(type, count)
             elif tag == 258:
                 bits_per_sample = self.read(type, count)
-                dtype_str = 'u' + str(int(bits_per_sample/8))
+                dtype_str = 'u' + str(int(bits_per_sample / 8))
                 # Picasso uses internatlly exclusively little endian byte order...
                 self.dtype = _np.dtype(dtype_str)
                 # ... the tif byte order might be different, so we also store the file dtype
                 self._tif_dtype = _np.dtype(self._tif_byte_order + dtype_str)
         self.frame_shape = (self.height, self.width)
-        self.frame_size = self.height*self.width
+        self.frame_size = self.height * self.width
 
         # Collect image offsets
         self.image_offsets = []
@@ -124,7 +119,7 @@ class TiffMap:
         self.close()
 
     def __getitem__(self, it):
-        with self.lock:     # Otherwise we get messed up when reading frames from multiple threads
+        with self.lock:  # Otherwise we get messed up when reading frames from multiple threads
             if isinstance(it, tuple):
                 if isinstance(it, int) or _np.issubdtype(it[0], _np.integer):
                     return self[it[0]][it[1:]]
@@ -179,7 +174,7 @@ class TiffMap:
                 self.file.seek(self.read('L'))
             if tag == 51123:
                 # This is the Micro-Manager tag. We generate an info dict that contains any info we need.
-                readout = self.read(type, count).strip(b'\0')      # Strip null bytes which MM 1.4.22 adds
+                readout = self.read(type, count).strip(b'\0')  # Strip null bytes which MM 1.4.22 adds
                 mm_info = _json.loads(readout.decode())
                 info['Micro-Manager Metadata'] = mm_info
                 info['Camera'] = mm_info['Camera']
@@ -226,9 +221,9 @@ class TiffMultiMap:
     def __init__(self, path, memmap_frames=False, verbose=False):
         self.path = _ospath.abspath(path)
         self.dir = _ospath.dirname(self.path)
-        base, ext = _ospath.splitext(_ospath.splitext(self.path)[0])    # split two extensions as in .ome.tif
+        base, ext = _ospath.splitext(_ospath.splitext(self.path)[0])  # split two extensions as in .ome.tif
         base = _re.escape(base)
-        pattern = _re.compile(base + '_(\d*).ome.tif')    # This matches the basename + an appendix of the file number
+        pattern = _re.compile(base + '_(\d*).ome.tif')  # This matches the basename + an appendix of the file number
         entries = [_.path for _ in _os.scandir(self.dir) if _.is_file()]
         matches = [_re.match(pattern, _) for _ in entries]
         matches = [_ for _ in matches if _ is not None]
@@ -297,7 +292,7 @@ class TiffMultiMap:
     def get_frame(self, index):
         # TODO deal with negative numbers
         for i in range(self.n_maps):
-            if self.cum_n_frames[i] <= index < self.cum_n_frames[i+1]:
+            if self.cum_n_frames[i] <= index < self.cum_n_frames[i + 1]:
                 break
         else:
             raise IndexError
@@ -308,7 +303,7 @@ class TiffMultiMap:
         info['Frames'] = self.n_frames
         return info
 
-    def tofile(self, file_handle, byte_order=None):
+    def to_file(self, file_handle, byte_order=None):
         for map in self.maps:
             map.tofile(file_handle, byte_order)
 
@@ -316,7 +311,8 @@ class TiffMultiMap:
 def get_movie_groups(paths):
     groups = {}
     if len(paths) > 0:
-        pattern = _re.compile('(.*?)(_(\d*))?.ome.tif')    # This matches the basename + an optional appendix of the file number
+        pattern = _re.compile(
+            '(.*?)(_(\d*))?.ome.tif')  # This matches the basename + an optional appendix of the file number
         matches = [_re.match(pattern, path) for path in paths]
         match_infos = [{'path': _.group(), 'base': _.group(1), 'index': _.group(3)} for _ in matches]
         for match_info in match_infos:
@@ -332,4 +328,3 @@ def get_movie_groups(paths):
             group = [path for (index, path) in sorted(zip(indices, group))]
             groups[basename] = group
     return groups
-

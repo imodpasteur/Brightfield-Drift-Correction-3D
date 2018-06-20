@@ -72,11 +72,13 @@ class DriftFitter:
                 # out.append(cc_max(cc))
                 try:
                     x, y, z, good = fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20, debug=debug)
+
                 except:
                     raise(ValueError('unable to unpack fit_gauss_3d output'))
 
                 if not good:
-                    logger.warning(f'Bad gauss fit in frame {i+1}')
+                    logger.warning(f'Bad fit in frame {i+1}')
+                    problems.append(i+1)
                 else:
                     z_ = z + self.z_crop[0] - self.zCenter
                     x_ = x + self.x_correction - xc - self.radius_xy
