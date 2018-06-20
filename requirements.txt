@@ -1,3 +1,6 @@
 scikit-image
+numpy
+scipy
+matplotlib
 read-roi
-picasso
+
