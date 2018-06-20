@@ -1,6 +1,6 @@
-import os,sys
+import os, sys
 #sys.path.append( os.path.join( os.path.dirname(__file__), os.path.pardir ) )
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.path.pardir))
+#sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.path.pardir))
 
 
 import numpy as np
