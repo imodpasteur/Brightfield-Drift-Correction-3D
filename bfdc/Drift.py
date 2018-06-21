@@ -252,16 +252,16 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth = 10):
 
     bf_table = interpolate_drift_table(bf_table,start=start, skip=skip, smooth=smooth)
 
-    zola_frame_num = np.max(zola_table[:, 1])
+    zola_frame_num = int(np.max(zola_table[:, 1]))
 
-    bf_frame_num = np.max(bf_table[:, 0])
+    bf_frame_num = int(np.max(bf_table[:, 0]))
 
     print(f'Frame number for zola/bf_DC : {zola_frame_num}/{bf_frame_num}')
 
     if bf_frame_num < zola_frame_num:
         print(f'Truncating ZOLA table to {bf_frame_num} frames')
         zola_table = zola_table[zola_table[:, 1] < bf_frame_num]
-        fnum = np.max(zola_table[:, 1])
+        fnum = int(np.max(zola_table[:, 1]))
         print(f'New frame number: {fnum}')
 
     frame_nums = np.array(zola_table[:, 1], dtype='int')
