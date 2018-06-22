@@ -73,7 +73,7 @@ class DriftFitter:
                 try:
                     x, y, z, good = fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20, debug=debug)
 
-                except:
+                except ValueError:
                     raise(ValueError('unable to unpack fit_gauss_3d output'))
 
                 if not good:
