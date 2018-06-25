@@ -1,8 +1,5 @@
 from setuptools import setup
 
-
-
-
 setup(
     name='bfdc',
     version='0.0.1',
