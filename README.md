@@ -3,13 +3,15 @@
 Use bright field signal to trace the drift in 3D with nanometer precision.
 
 ## Requirements
-* python 3.5+
+* python 3.6+
 * numpy
 * scipy
 * scikit-image
 
 ## Installation
-`git clone https://gitlab.pasteur.fr/aaristov/Brightfield_Drift_Tracking_3D.git`
+`git clone https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git`
+
+`cd Brightfield_Drift_Tracking_3D`
 
 `python setup.py install`
 
