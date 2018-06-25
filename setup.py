@@ -5,11 +5,11 @@ setup(
     version='0.0.1',
     packages=['bfdc'],
     install_requires=[
-       'scikit-image>=0.13.1',
-       'numpy>=1.14.5',
-        'scipy>=1.1.0',
-        'matplotlib>=2.2.2',
-        'read-roi>=1.4.2'
+        'scikit-image',
+        'numpy',
+        'scipy',
+        'matplotlib',
+        'read-roi'
     ],
     url='https://gitlab.pasteur.fr/aaristov/Brightfield_Drift_Tracking_3D.git',
     license='BSD',
