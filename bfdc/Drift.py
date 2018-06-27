@@ -341,7 +341,7 @@ def mymain(myargs=None):
         path = os.path.splitext(zola_path)[0] + f'_BFDC_smooth_{args.smooth}.csv'
         logger.info(f'saving results to {path}')
         save_zola_table(zola_table_dc, path)
-        save_drift_plot(bf_table, os.path.splitext(path)[0] + '.png')
+        save_drift_plot(move_drift_to_zero(bf_table), os.path.splitext(path)[0] + '.png')
 
     else:
         parser.print_help()
