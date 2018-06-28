@@ -1,5 +1,7 @@
 import numpy as np
 
+import matplotlib as mpl
+mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 
 from skimage.feature import match_template
