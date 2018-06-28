@@ -7,12 +7,13 @@ TODO: Integrity test
 import traceback
 
 # from scipy.ndimage import gaussian_filter1d as gf1
-from skimage import io
+
 
 from bfdc.CrossCorrelation import *
 from bfdc.feature import *
 from bfdc.iotools import *
 import bfdc.picassoio as pio
+from skimage import io
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
