@@ -6,6 +6,7 @@ setup(
     packages=['bfdc'],
     install_requires=[
         'scikit-image',
+        'pillow==5.0.0',
         'numpy',
         'scipy',
         'matplotlib',
