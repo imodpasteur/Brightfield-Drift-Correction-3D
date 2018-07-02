@@ -1,4 +1,4 @@
-from bfdc.Drift import *
+from bfdc.drift import *
 from skimage import io
 import bfdc.picassoio as pio
 import logging

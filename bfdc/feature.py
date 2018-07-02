@@ -3,7 +3,7 @@ import scipy.ndimage as ndi
 from scipy.ndimage import gaussian_filter as gf
 from skimage import filters
 import matplotlib.pyplot as plt
-from bfdc.CrossCorrelation import get_abs_max
+from bfdc.xcorr import get_abs_max
 from read_roi import read_roi_file
 
 

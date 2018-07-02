@@ -9,7 +9,7 @@ import traceback
 # from scipy.ndimage import gaussian_filter1d as gf1
 
 
-from bfdc.CrossCorrelation import *
+from bfdc.xcorr import *
 from bfdc.feature import *
 from bfdc.iotools import *
 import bfdc.picassoio as pio
