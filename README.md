@@ -24,18 +24,18 @@ Acquire bright field images with the same exposure (movie.tif) in order to trace
 You'll need to select a contrast region say 32x32 picels from the dict.tif and save as crop.roi (ImageJ ROI format)
 
 ### Tracing drift:
-`python -m bfdc.Drift trace dict.tif crop.roi movie.tif`
+`python -m bfdc trace dict.tif crop.roi movie.tif`
 
 ### Applying drift to ZOLA table:
-`python -m bfdc.Drift trace ZOLA_localization_table.csv BFCC_table.csv --smooth 10`
+`python -m bfdc trace ZOLA_localization_table.csv BFCC_table.csv --smooth 10`
 
 ### Help and possible arguments:
 
-`python -m bfdc.Drift -h`
+`python -m bfdc -h`
 
-`python -m bfdc.Drift trace -h`
+`python -m bfdc trace -h`
 
-`python -m bfdc.Drift apply -h`
+`python -m bfdc apply -h`
 
 # Example of use
  
