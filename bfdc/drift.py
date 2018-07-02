@@ -245,7 +245,7 @@ def move_drift_to_zero(drift_nm, ref_average=10):
     """
     drift_ref = drift_nm[0:ref_average, :].mean(axis=0)
     drift_ref[0] = 0  # frame number should be 0 for reference
-    drift_ = drift_nm - drift_ref
+    drift_ = drift_nm - drift_ref.reshape((1,4))
     return drift_
 
 
