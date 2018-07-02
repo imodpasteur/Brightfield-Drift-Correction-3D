@@ -12,7 +12,7 @@ setup(
         'matplotlib',
         'read-roi'
     ],
-    url='https://gitlab.pasteur.fr/aaristov/Brightfield_Drift_Tracking_3D.git',
+    url='https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git',
     license='BSD',
     author='Andrey Aristov',
     author_email='aaristov@pasteur.fr',
