@@ -1,7 +1,7 @@
 from unittest import TestCase,skip
 import numpy as np
 from bfdc.iotools import check_stacks_size_equals
-from bfdc.drift import mymain
+from bfdc.__main__ import mymain
 import sys, os
 import logging
 logger = logging.getLogger(__name__)

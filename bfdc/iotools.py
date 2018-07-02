@@ -141,7 +141,7 @@ def check_multi_channel(movie,channel = 2, channel_position = 1):
         raise(TypeError(f'check_multi_channel: channel order not understood, movie shape {movie.shape}'))
 
 
-def skip_stack(n_frames, start, skip, maxframes):
+def skip_stack(n_frames:int, start:int, skip:int, maxframes:int):
     """
     Now works with virtual stack
     :param n_frames: total frame number
