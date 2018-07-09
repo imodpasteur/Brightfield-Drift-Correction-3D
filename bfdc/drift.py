@@ -13,7 +13,6 @@ from bfdc.xcorr import *
 from bfdc.feature import *
 from bfdc.iotools import *
 
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -105,7 +104,7 @@ class DriftFitter:
             problems.append(i + 1)
 
         except WrongCrop as e:
-            logger.error(e.message)
+            logger.error(e)
         except Exception as e:
             print(e)
             traceback.print_stack()
