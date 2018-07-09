@@ -12,8 +12,6 @@ import traceback
 from bfdc.xcorr import *
 from bfdc.feature import *
 from bfdc.iotools import *
-import bfdc.picassoio as pio
-from skimage import io
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -21,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class WrongCrop(Exception):
     pass
+
 
 class BadGaussFit(Exception):
     pass
@@ -41,7 +40,7 @@ class DriftFitter:
         self.zCenter = len(self.dict) // 2
         self.radius_xy = 3
 
-    def doTrace(self, movie, frame_list, extend_xy=5, min_xcorr=0.8, min_signal = 100, debug=False):
+    def do_trace(self, movie, frame_list, extend_xy=5, min_xcorr=0.8, min_signal=100, debug=False):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
         # for i,frame in enumerate(movie):
         # crop frame with extended by 5px boundaries
@@ -72,8 +71,7 @@ class DriftFitter:
                     crop_dict = self.crop_dict()
                     cc = cc_stack(crop_frame, crop_dict)
                     if cc.max() < min_xcorr:
-                        self.z_crop[0] = 0
-                        self.z_crop[1] = None
+                        self.z_crop = (0, None)
                         crop_dict = self.crop_dict()
                         cc = cc_stack(crop_frame, crop_dict)
                     # out.append(cc_max(cc))
@@ -98,7 +96,7 @@ class DriftFitter:
                     self.update_z_crop(z + self.z_crop[0])
                     self.update_xy_boundaries(x, y, extend_xy)
 
-                print('\r{}/{}'.format(i + 1, total), end=' ')
+                print('\r{}/{} '.format(i + 1, total), end=' ')
 
         except [LowXCorr, BadGaussFit]:
             logging.warning(f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
@@ -106,6 +104,8 @@ class DriftFitter:
                 out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
             problems.append(i + 1)
 
+        except WrongCrop as e:
+            logger.error(e.message)
         except Exception as e:
             print(e)
             traceback.print_stack()
@@ -166,7 +166,7 @@ def get_drift_3d(movie, frame_list, cal_stack, debug=False):
             # out.append(cc_max(cc))
             x, y, z, good = fit_gauss_3d(cc, debug=debug)
             out.append([i + 1, x, y, -z])
-            print('\r{}/{}'.format(i + 1, total), end=' ')
+            print('\r{}/{} '.format(i + 1, total), end=' ')
     except Exception as e:
         print(e)
         problems.append(i + 1)
@@ -233,7 +233,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
 
     frame_list = skip_stack(movie.n_frames, start=start, skip=skip, maxframes=nframes)
     try:
-        drift_px = fitter.doTrace(movie, frame_list=frame_list, min_signal=min_signal, debug=debug)
+        drift_px = fitter.do_trace(movie, frame_list=frame_list, min_signal=min_signal, debug=debug)
     except KeyboardInterrupt as e:
         print(e)
 
@@ -254,13 +254,13 @@ def move_drift_to_zero(drift_nm, ref_average=10):
     assert drift_nm.shape[0] > 0
     drift_ref = drift_nm[0:ref_average, :].mean(axis=0)
     drift_ref[0] = 0  # frame number should be 0 for reference
-    drift_ = drift_nm - drift_ref.reshape((1,4))
+    drift_ = drift_nm - drift_ref.reshape((1, 4))
     return drift_
 
 
-def apply_drift(zola_table, bf_table, start=None, skip=None, smooth = 10):
+def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10):
 
-    bf_table = interpolate_drift_table(bf_table,start=start, skip=skip, smooth=smooth)
+    bf_table = interpolate_drift_table(bf_table, start=start, skip=skip, smooth=smooth)
 
     zola_frame_num = int(np.max(zola_table[:, 1]))
 
@@ -277,10 +277,9 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth = 10):
     frame_nums = np.array(zola_table[:, 1], dtype='int')
     bf_drift_framed = bf_table[frame_nums - 1]
 
-    bf_drift_framed[:,3] = -1 * bf_drift_framed[:,3]
+    bf_drift_framed[:, 3] = -1 * bf_drift_framed[:, 3]
 
     zola_table_dc = zola_table.copy()
     zola_table_dc[:, [2, 3, 4]] = zola_table_dc[:, [2, 3, 4]] - bf_drift_framed[:, [1, 2, 3]]
     zola_table_dc[:, [11, 12, 13]] = bf_drift_framed[:, [1, 2, 3]]
     return zola_table_dc
-
