@@ -41,7 +41,7 @@ class DriftFitter:
         self.zCenter = len(self.dict) // 2
         self.radius_xy = 3
 
-    def doTrace(self, movie, frame_list, extend_xy=5, min_signal = 100, debug=False):
+    def doTrace(self, movie, frame_list, extend_xy=5, min_xcorr=0.8, min_signal = 100, debug=False):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
         # for i,frame in enumerate(movie):
         # crop frame with extended by 5px boundaries
@@ -72,6 +72,11 @@ class DriftFitter:
                         raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
                     crop_dict = self.crop_dict()
                     cc = cc_stack(crop_frame, crop_dict)
+                    if cc.max() < min_xcorr:
+                        self.z_crop[0] = 0
+                        self.z_crop[1] = None
+                        crop_dict = self.crop_dict()
+                        cc = cc_stack(crop_frame, crop_dict)
                     # out.append(cc_max(cc))
                     try:
                         x, y, z, good = fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20, debug=debug)
