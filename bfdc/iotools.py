@@ -202,6 +202,8 @@ def parse_input():
     trace_parser.add_argument('--nframes', type=int, default=None, help='now many frames to analyse from the movie. Default: None')
     trace_parser.add_argument('--driftFileName', type=str, default='BFCC_table',
                               help='filename for the drift table. Default: "BFCC_table.csv"')
+    trace_parser.add_argument('--minsignal', type=int, default=100,
+                              help='Threshold of mean intensity to treat the image as brightfield. Default: 100')
     trace_parser.add_argument('--skip', type=int, default=0,
                               help='how many frames to skip form the movie. Default: 0')
     trace_parser.add_argument('--start', type=int, default=0,

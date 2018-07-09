@@ -41,7 +41,7 @@ class DriftFitter:
         self.zCenter = len(self.dict) // 2
         self.radius_xy = 3
 
-    def doTrace(self, movie, frame_list, extend_xy=5, debug=False):
+    def doTrace(self, movie, frame_list, extend_xy=5, min_signal = 100, debug=False):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
         # for i,frame in enumerate(movie):
         # crop frame with extended by 5px boundaries
@@ -63,34 +63,36 @@ class DriftFitter:
             for i, f in enumerate(frame_list):
                 frame = movie[f]
                 logging.debug(f'frame {i+1}')
-                crop_frame = crop_using_xy_boundaries(frame, b, extend=extend_xy)
+                frame_mean = frame.mean()
+                if frame_mean > min_signal:
+                    crop_frame = crop_using_xy_boundaries(frame, b, extend=extend_xy)
 
-                logging.debug(f'Cropping frame {crop_frame.shape}')
-                if min(crop_frame.shape) == 0:
-                    raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
-                crop_dict = self.crop_dict()
-                cc = cc_stack(crop_frame, crop_dict)
-                # out.append(cc_max(cc))
-                try:
-                    x, y, z, good = fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20, debug=debug)
+                    logging.debug(f'Cropping frame {crop_frame.shape}')
+                    if min(crop_frame.shape) == 0:
+                        raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
+                    crop_dict = self.crop_dict()
+                    cc = cc_stack(crop_frame, crop_dict)
+                    # out.append(cc_max(cc))
+                    try:
+                        x, y, z, good = fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20, debug=debug)
 
-                except ValueError:
-                    raise(ValueError('unable to unpack fit_gauss_3d output'))
+                    except ValueError:
+                        raise(ValueError('unable to unpack fit_gauss_3d output'))
 
-                if not good:
-                    logger.warning(f'Bad fit in frame {i+1}')
-                    problems.append(i+1)
-                else:
-                    z_ = z + self.z_crop[0] - self.zCenter
-                    x_ = x + self.x_correction - xc - self.radius_xy
-                    y_ = y + self.y_correction - yc - self.radius_xy
-                logger.debug(f"x_px = {x}, y_px = {y}, \
-                                            x_correction = {self.x_correction}, y_correction = {self.y_correction}")
+                    if not good:
+                        logger.warning(f'Bad fit in frame {i+1}')
+                        problems.append(i+1)
+                    else:
+                        z_ = z + self.z_crop[0] - self.zCenter
+                        x_ = x + self.x_correction - xc - self.radius_xy
+                        y_ = y + self.y_correction - yc - self.radius_xy
+                    logger.debug(f"x_px = {x}, y_px = {y}, \
+                                                x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
-                out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
-                logging.debug(f'found xyz {x,y,z}')
-                self.update_z_crop(z + self.z_crop[0])
-                self.update_xy_boundaries(x, y, extend_xy)
+                    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
+                    logging.debug(f'found xyz {x,y,z}')
+                    self.update_z_crop(z + self.z_crop[0])
+                    self.update_xy_boundaries(x, y, extend_xy)
 
                 print('\r{}/{}'.format(i + 1, total), end=' ')
 
@@ -207,7 +209,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
     """
     Computes 3D drift on the movie vs cal_stack with auto crop
     :param debug: plot data and fit if True
-    :param args: dict[args.xypixel, args.zstep]
+    :param args: dict[args.xypixel, args.zstep, args.guess]
     :param cal_stack: 3d z-stack
     :param movie: time series 3D stack
     :param roi: readout of IJ roi file
@@ -218,6 +220,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
     skip = args.skip
     start = args.start
     nframes = args.nframes
+    min_signal = args.minsignal
 
     print(f'Pixel size xyz: {px}')
     drift_px = np.zeros((1, 4))
@@ -226,7 +229,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
 
     frame_list = skip_stack(movie.n_frames, start=start, skip=skip, maxframes=nframes)
     try:
-        drift_px = fitter.doTrace(movie, frame_list=frame_list, debug=debug)
+        drift_px = fitter.doTrace(movie, frame_list=frame_list, min_signal=min_signal, debug=debug)
     except KeyboardInterrupt as e:
         print(e)
 
