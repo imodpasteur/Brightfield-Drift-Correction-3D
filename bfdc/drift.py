@@ -66,7 +66,6 @@ class DriftFitter:
                 frame_mean = frame.mean()
                 if frame_mean > min_signal:
                     crop_frame = crop_using_xy_boundaries(frame, b, extend=extend_xy)
-
                     logging.debug(f'Cropping frame {crop_frame.shape}')
                     if min(crop_frame.shape) == 0:
                         raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
