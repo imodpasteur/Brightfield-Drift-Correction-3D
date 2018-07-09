@@ -15,7 +15,7 @@ from bfdc.iotools import *
 import bfdc.picassoio as pio
 from skimage import io
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
