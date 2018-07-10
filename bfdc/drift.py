@@ -258,7 +258,6 @@ def move_drift_to_zero(drift_nm, ref_average=10):
 
 
 def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, max_bg = 100):
-    # TODO: remove from ZOLA table frames containing BF
 
     bf_table = interpolate_drift_table(bf_table, start=start, skip=skip, smooth=smooth)
 

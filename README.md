@@ -66,5 +66,13 @@ Note, how Nikon's Perfect Focus System struggles to maintain the focus!
 Fluorescent bead track before and after BFDC.
 
 ![input](img/bead_track_color.png) -> ![input](img/bead_track_color_BFDC.png) 
+
+# Change log
+
+v0.1.2 Removing localizations from the ZOLA table if they come from bright field. 
+
+v0.1.1 Automatically detecting BF frames based on intensity. No mo need of skipping parameters to know.
+
+
  
 
