@@ -95,7 +95,7 @@ class DriftFitter:
                     self.update_z_crop(z + self.z_crop[0])
                     self.update_xy_boundaries(x, y, extend_xy)
 
-                print('\r{}/{} '.format(i + 1, total), end=' ')
+                print(f'\rProcesed {i + 1}/{total} frames, found {len(out)} BF frames', end=' ')
 
         except [LowXCorr, BadGaussFit]:
             logging.warning(f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
