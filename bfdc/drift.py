@@ -274,7 +274,7 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10):
         fnum = int(np.max(zola_table[:, 1]))
         print(f'New frame number: {fnum}')
 
-    zola_table_wo_BF = zola_table[not np.isin(zola_table[:,1],bf_table[:,0])]
+    zola_table_wo_BF = zola_table[np.logical_not(np.isin(zola_table[:,1],bf_table[:,0]))]
     frame_nums = np.array(zola_table_wo_BF[:, 1], dtype='int')
     bf_drift_framed = bf_table[frame_nums - 1]
 
