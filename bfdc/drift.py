@@ -258,6 +258,7 @@ def move_drift_to_zero(drift_nm, ref_average=10):
 
 
 def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10):
+    # TODO: remove from ZOLA table frames containing BF
 
     bf_table = interpolate_drift_table(bf_table, start=start, skip=skip, smooth=smooth)
 
@@ -273,7 +274,8 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10):
         fnum = int(np.max(zola_table[:, 1]))
         print(f'New frame number: {fnum}')
 
-    frame_nums = np.array(zola_table[:, 1], dtype='int')
+    zola_table_wo_BF = zola_table[not np.isin(zola_table[:,1],bf_table[:,0])]
+    frame_nums = np.array(zola_table_wo_BF[:, 1], dtype='int')
     bf_drift_framed = bf_table[frame_nums - 1]
 
     bf_drift_framed[:, 3] = -1 * bf_drift_framed[:, 3]
