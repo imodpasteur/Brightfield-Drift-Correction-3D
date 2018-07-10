@@ -168,7 +168,7 @@ def update_frame_number(table,start,skip):
     :param skip: every skip-th frame from selection
     :return: table with updated frame column
     """
-    if skip > 0:
+    if skip > 0 or start > 0:
         if table[0,0] == 1:
             table[:,0] -=1
         elif table[0,0] == 0:
