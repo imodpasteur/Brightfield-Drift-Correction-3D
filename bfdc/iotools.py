@@ -224,7 +224,8 @@ def parse_input():
     apply_parser.add_argument('--start', type=int, default=0,
                               help='how many frames to skip in the beginning of the movie. Default: 0')
 
-    apply_parser.add_argument('--smooth', type=int, default=0, help='gaussian smoothing for the drift')
+    apply_parser.add_argument('--smooth', type=int, default=0, help='gaussian smoothing for the drift. Default: 0')
+    apply_parser.add_argument('--maxbg', type=int, default=0, help='reject localizations with high background. Default: 0')
 
     return parser
 

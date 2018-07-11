@@ -66,12 +66,16 @@ def mymain(myargs=None):
             bf_table[:, 1:4] = gf1(bf_table[:, 1:4], sigma=args.smooth, axis=0)
 
         logger.info(f'Applying drift')
-        zola_table_dc = apply_drift(bf_table=bf_table, zola_table=zola_table, start=args.start, skip=args.skip)
+        zola_table_dc, bf_table_int = apply_drift(bf_table=bf_table,
+                                    zola_table=zola_table,
+                                    start=args.start,
+                                    skip=args.skip,
+                                    max_bg=args.max_bg)
 
         path = os.path.splitext(zola_path)[0] + f'_BFDC_smooth_{args.smooth}.csv'
         logger.info(f'saving results to {path}')
         save_zola_table(zola_table_dc, path)
-        save_drift_plot(move_drift_to_zero(bf_table), os.path.splitext(path)[0] + '.png')
+        save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png')
 
     else:
         parser.print_help()
