@@ -9,11 +9,8 @@ Use bright field signal to trace the drift in 3D with nanometer precision.
 * scikit-image
 
 ## Installation
-`git clone https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git`
 
-`cd Brightfield_Drift_Tracking_3D`
-
-`python setup.py install`
+`pip install git+https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git`
 
 ## Usage
 
@@ -71,7 +68,7 @@ Fluorescent bead track before and after BFDC.
 
 v0.1.2 Removing localizations from the ZOLA table if they come from bright field. 
 
-v0.1.1 Automatically detecting BF frames based on intensity. No mo need of skipping parameters to know.
+v0.1.1 Automatically detecting BF frames based on intensity. No more need of skipping parameters to know.
 
 
  
