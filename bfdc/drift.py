@@ -257,7 +257,7 @@ def move_drift_to_zero(drift_nm, ref_average=10):
     return drift_
 
 
-def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, max_bg = 100):
+def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg = 100):
     # TODO: save smoothed drift plot with interpolated frame numbers
     # TODO: extrapolate to all frame numbers in the ZOLA table
     """
@@ -267,7 +267,7 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, max_bg =
     :param start: the first BF frame with respect to the fluorescence signal
     :param skip: if BF was acquired with skipping, indicate it, so to intepolate properly
     :param smooth: gaussian kernel sigma to the drift before interpolation
-    :param max_bg: when reconstruction single molecules, some frames will contain BF data with high bg.
+    :param maxbg: when reconstruction single molecules, some frames will contain BF data with high bg.
                 Localiations with bg higher than max_bg will be rejected from the localization table.
     :return: drift corrected zola table, interpolated and smoothed drift table
     """
@@ -295,7 +295,7 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, max_bg =
     zola_table_dc[:, [2, 3, 4]] = zola_table_dc[:, [2, 3, 4]] - bf_drift_framed[:, [1, 2, 3]]
     zola_table_dc[:, [11, 12, 13]] = bf_drift_framed[:, [1, 2, 3]]
     zola_dc_wo_bf = zola_table_dc
-    if max_bg > 0:
-        zola_dc_wo_bf = zola_table_dc[zola_table_dc[:,6] < max_bg]
+    if maxbg > 0:
+        zola_dc_wo_bf = zola_table_dc[zola_table_dc[:,6] < maxbg]
     return zola_dc_wo_bf, bf_table
 

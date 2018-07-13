@@ -73,10 +73,10 @@ def mymain(myargs=None):
 
         logger.info(f'Applying drift')
         zola_table_dc, bf_table_int = apply_drift(bf_table=bf_table,
-                                    zola_table=zola_table,
-                                    start=args.start,
-                                    skip=args.skip,
-                                    max_bg=args.max_bg)
+                                                  zola_table=zola_table,
+                                                  start=args.start,
+                                                  skip=args.skip,
+                                                  maxbg=args.maxbg)
 
         path = os.path.splitext(zola_path)[0] + f'_BFDC_smooth_{args.smooth}.csv'
         logger.info(f'saving results to {path}')
