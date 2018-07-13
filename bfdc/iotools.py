@@ -184,7 +184,7 @@ def put_trace_lock(path, name="BFDC_.lock"):
     f = open(path + os.sep + name, mode='w')
     f.close()
     logger.info('Setting lock')
-    return path+name
+    return path + os.sep + name
 
 def remove_trace_lock(path):
     try:
