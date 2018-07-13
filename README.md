@@ -10,7 +10,7 @@ Use bright field signal to trace the drift in 3D with nanometer precision.
 
 ## Installation
 
-`pip install git+https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git`
+`pip install git+https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git@dev`
 
 ## Usage
 
@@ -24,7 +24,7 @@ You'll need to select a contrast region say 32x32 picels from the dict.tif and s
 `python -m bfdc trace dict.tif crop.roi movie.tif`
 
 ### Applying drift to ZOLA table:
-`python -m bfdc trace ZOLA_localization_table.csv BFCC_table.csv --smooth 10`
+`python -m bfdc apply ZOLA_localization_table.csv BFCC_table.csv --smooth 10`
 
 ### Help and possible arguments:
 
