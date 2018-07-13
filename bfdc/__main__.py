@@ -24,6 +24,8 @@ def mymain(myargs=None):
         roi = read_roi(roi_path)
 
         movie_path = get_abs_path(args.movie)
+        if args.lock:
+            lock = put_trace_lock(os.path.dirname(movie_path))
         logger.info(f'\nOpening movie {args.movie}')
         # movie = io.imread(movie_path)
         movie, [_] = pio.load_movie(movie_path)
@@ -51,6 +53,10 @@ def mymain(myargs=None):
             logger.info('Drift table saved, exiting')
         else:
             logger.info('Drift table empty, exiting')
+
+
+        if args.lock:
+            unlock = remove_trace_lock(lock)
 
     if args.command == 'apply':
         logger.debug(args)

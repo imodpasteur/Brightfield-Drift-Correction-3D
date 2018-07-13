@@ -212,7 +212,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
     """
     Computes 3D drift on the movie vs cal_stack with auto crop
     :param debug: plot data and fit if True
-    :param args: dict[args.xypixel, args.zstep, args.guess]
+    :param args: dict[args.xypixel, args.zstep, args.minsignal]
     :param cal_stack: 3d z-stack
     :param movie: time series 3D stack
     :param roi: readout of IJ roi file

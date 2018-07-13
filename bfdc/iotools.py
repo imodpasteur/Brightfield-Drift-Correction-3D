@@ -180,6 +180,21 @@ def update_frame_number(table,start,skip):
         logger.info("update_frame_number: Updated frame numbers successfully")
     return table
 
+def put_trace_lock(path,name="BFDC_.lock"):
+    f = open(path+name,mode='w')
+    f.close()
+    logger.info('Setting lock')
+    return path+name
+
+def remove_trace_lock(path):
+    try:
+        os.remove(path)
+        logger.info('Removing lock')
+        return 0
+    except IOError:
+        logger.error('Problem removing lock')
+        return 1
+
 
 def parse_input():
     # Main parser
@@ -212,6 +227,8 @@ def parse_input():
                               help='channel index (starts with 1) for the movie. Default: 2')
     trace_parser.add_argument('--channel_position', type=int, default=1,
                               help='channel position (starts with 0) for the movie. Default: 1')
+    trace_parser.add_argument('--lock', type=int, default=0,
+                              help='if on, will create BFDC_.lock file in the movie folder')
 
     # apply
     apply_parser = subparsers.add_parser('apply', help='apply drift 3D to ZOLA table')
