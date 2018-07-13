@@ -180,8 +180,8 @@ def update_frame_number(table,start,skip):
         logger.info("update_frame_number: Updated frame numbers successfully")
     return table
 
-def put_trace_lock(path,name="BFDC_.lock"):
-    f = open(path+name,mode='w')
+def put_trace_lock(path, name="BFDC_.lock"):
+    f = open(path + os.sep + name, mode='w')
     f.close()
     logger.info('Setting lock')
     return path+name
