@@ -228,7 +228,7 @@ def parse_input():
     trace_parser.add_argument('--channel_position', type=int, default=1,
                               help='channel position (starts with 0) for the movie. Default: 1')
     trace_parser.add_argument('--lock', type=int, default=0,
-                              help='if on, will create BFDC_.lock file in the movie folder')
+                              help='if on (1), will create BFDC_.lock file in the movie folder. Default: 0')
 
     # apply
     apply_parser = subparsers.add_parser('apply', help='apply drift 3D to ZOLA table')
