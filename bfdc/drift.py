@@ -73,12 +73,32 @@ class DriftFitter:
                         self.z_crop = (0, None)
                         crop_dict = self.crop_dict()
                         cc = cc_stack(crop_frame, crop_dict)
-                    # out.append(cc_max(cc))
+                        logger.info('Expanding z limits')
+
+                    if cc.max() < min_xcorr:
+                        logger.warning(f'xcorr value is still lower than {min_xcorr}, skipping the frame')
+                        continue
+                    # out.append(cc_max(cc) limits)
                     try:
                         x, y, z, good = fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20, debug=debug)
 
                     except ValueError:
                         raise(ValueError('unable to unpack fit_gauss_3d output'))
+
+                    except [LowXCorr, BadGaussFit]:
+                        logging.warning(
+                            f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
+                        # if len(out):
+                        #    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
+                        problems.append(i + 1)
+
+                    except WrongCrop as e:
+                        logger.error(e)
+
+                    except Exception as e:
+                        print(e)
+                        traceback.print_stack()
+                        problems.append(i + 1)
 
                     if not good:
                         logger.warning(f'Bad fit in frame {i+1}')
@@ -97,18 +117,6 @@ class DriftFitter:
 
                 print(f'\rProcesed {i + 1}/{total} frames, found {len(out)} BF frames', end=' ')
 
-        except [LowXCorr, BadGaussFit]:
-            logging.warning(f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
-            if len(out):
-                out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
-            problems.append(i + 1)
-
-        except WrongCrop as e:
-            logger.error(e)
-        except Exception as e:
-            print(e)
-            traceback.print_stack()
-            problems.append(i + 1)
 
         finally:
             n = len(problems)
