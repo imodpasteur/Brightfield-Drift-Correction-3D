@@ -12,15 +12,13 @@ import traceback
 from bfdc.xcorr import *
 from bfdc.feature import *
 from bfdc.iotools import *
-import bfdc.picassoio as pio
-from skimage import io
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class WrongCrop(Exception):
     pass
+
 
 class BadGaussFit(Exception):
     pass
@@ -41,7 +39,7 @@ class DriftFitter:
         self.zCenter = len(self.dict) // 2
         self.radius_xy = 3
 
-    def doTrace(self, movie, frame_list, extend_xy=5, debug=False):
+    def do_trace(self, movie, frame_list, extend_xy=5, min_xcorr=0.8, min_signal=100, debug=False):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
         # for i,frame in enumerate(movie):
         # crop frame with extended by 5px boundaries
@@ -63,36 +61,41 @@ class DriftFitter:
             for i, f in enumerate(frame_list):
                 frame = movie[f]
                 logging.debug(f'frame {i+1}')
-                crop_frame = crop_using_xy_boundaries(frame, b, extend=extend_xy)
+                frame_mean = frame.mean()
+                if frame_mean > min_signal:
+                    crop_frame = crop_using_xy_boundaries(frame, b, extend=extend_xy)
+                    logging.debug(f'Cropping frame {crop_frame.shape}')
+                    if min(crop_frame.shape) == 0:
+                        raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
+                    crop_dict = self.crop_dict()
+                    cc = cc_stack(crop_frame, crop_dict)
+                    if cc.max() < min_xcorr:
+                        self.z_crop = (0, None)
+                        crop_dict = self.crop_dict()
+                        cc = cc_stack(crop_frame, crop_dict)
+                    # out.append(cc_max(cc))
+                    try:
+                        x, y, z, good = fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20, debug=debug)
 
-                logging.debug(f'Cropping frame {crop_frame.shape}')
-                if min(crop_frame.shape) == 0:
-                    raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
-                crop_dict = self.crop_dict()
-                cc = cc_stack(crop_frame, crop_dict)
-                # out.append(cc_max(cc))
-                try:
-                    x, y, z, good = fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20, debug=debug)
+                    except ValueError:
+                        raise(ValueError('unable to unpack fit_gauss_3d output'))
 
-                except ValueError:
-                    raise(ValueError('unable to unpack fit_gauss_3d output'))
+                    if not good:
+                        logger.warning(f'Bad fit in frame {i+1}')
+                        problems.append(i+1)
+                    else:
+                        z_ = z + self.z_crop[0] - self.zCenter
+                        x_ = x + self.x_correction - xc - self.radius_xy
+                        y_ = y + self.y_correction - yc - self.radius_xy
+                    logger.debug(f"x_px = {x}, y_px = {y}, \
+                                                x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
-                if not good:
-                    logger.warning(f'Bad fit in frame {i+1}')
-                    problems.append(i+1)
-                else:
-                    z_ = z + self.z_crop[0] - self.zCenter
-                    x_ = x + self.x_correction - xc - self.radius_xy
-                    y_ = y + self.y_correction - yc - self.radius_xy
-                logger.debug(f"x_px = {x}, y_px = {y}, \
-                                            x_correction = {self.x_correction}, y_correction = {self.y_correction}")
+                    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
+                    logging.debug(f'found xyz {x,y,z}')
+                    self.update_z_crop(z + self.z_crop[0])
+                    self.update_xy_boundaries(x, y, extend_xy)
 
-                out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
-                logging.debug(f'found xyz {x,y,z}')
-                self.update_z_crop(z + self.z_crop[0])
-                self.update_xy_boundaries(x, y, extend_xy)
-
-                print('\r{}/{}'.format(i + 1, total), end=' ')
+                print(f'\rProcesed {i + 1}/{total} frames, found {len(out)} BF frames', end=' ')
 
         except [LowXCorr, BadGaussFit]:
             logging.warning(f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
@@ -100,6 +103,8 @@ class DriftFitter:
                 out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
             problems.append(i + 1)
 
+        except WrongCrop as e:
+            logger.error(e)
         except Exception as e:
             print(e)
             traceback.print_stack()
@@ -160,7 +165,7 @@ def get_drift_3d(movie, frame_list, cal_stack, debug=False):
             # out.append(cc_max(cc))
             x, y, z, good = fit_gauss_3d(cc, debug=debug)
             out.append([i + 1, x, y, -z])
-            print('\r{}/{}'.format(i + 1, total), end=' ')
+            print('\r{}/{} '.format(i + 1, total), end=' ')
     except Exception as e:
         print(e)
         problems.append(i + 1)
@@ -207,7 +212,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
     """
     Computes 3D drift on the movie vs cal_stack with auto crop
     :param debug: plot data and fit if True
-    :param args: dict[args.xypixel, args.zstep]
+    :param args: dict[args.xypixel, args.zstep, args.minsignal]
     :param cal_stack: 3d z-stack
     :param movie: time series 3D stack
     :param roi: readout of IJ roi file
@@ -218,6 +223,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
     skip = args.skip
     start = args.start
     nframes = args.nframes
+    min_signal = args.minsignal
 
     print(f'Pixel size xyz: {px}')
     drift_px = np.zeros((1, 4))
@@ -226,7 +232,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
 
     frame_list = skip_stack(movie.n_frames, start=start, skip=skip, maxframes=nframes)
     try:
-        drift_px = fitter.doTrace(movie, frame_list=frame_list, debug=debug)
+        drift_px = fitter.do_trace(movie, frame_list=frame_list, min_signal=min_signal, debug=debug)
     except KeyboardInterrupt as e:
         print(e)
 
@@ -247,13 +253,27 @@ def move_drift_to_zero(drift_nm, ref_average=10):
     assert drift_nm.shape[0] > 0
     drift_ref = drift_nm[0:ref_average, :].mean(axis=0)
     drift_ref[0] = 0  # frame number should be 0 for reference
-    drift_ = drift_nm - drift_ref.reshape((1,4))
+    drift_ = drift_nm - drift_ref.reshape((1, 4))
     return drift_
 
 
-def apply_drift(zola_table, bf_table, start=None, skip=None, smooth = 10):
+def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg = 100):
+    # TODO: save smoothed drift plot with interpolated frame numbers
+    # TODO: extrapolate to all frame numbers in the ZOLA table
+    """
+    Applies drifto to ZOLA table including interpolation and smoothing
+    :param zola_table: numpy array
+    :param bf_table: numpy array
+    :param start: the first BF frame with respect to the fluorescence signal
+    :param skip: if BF was acquired with skipping, indicate it, so to intepolate properly
+    :param smooth: gaussian kernel sigma to the drift before interpolation
+    :param maxbg: when reconstruction single molecules, some frames will contain BF data with high bg.
+                Localiations with bg higher than max_bg will be rejected from the localization table.
+    :return: drift corrected zola table, interpolated and smoothed drift table
+    """
+    bf_table = interpolate_drift_table(bf_table, start=start, skip=skip, smooth=smooth)
 
-    bf_table = interpolate_drift_table(bf_table,start=start, skip=skip, smooth=smooth)
+    bf_table[:, 3] = -1 * bf_table[:, 3]  # flip z
 
     zola_frame_num = int(np.max(zola_table[:, 1]))
 
@@ -270,10 +290,12 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth = 10):
     frame_nums = np.array(zola_table[:, 1], dtype='int')
     bf_drift_framed = bf_table[frame_nums - 1]
 
-    bf_drift_framed[:,3] = -1 * bf_drift_framed[:,3]
 
     zola_table_dc = zola_table.copy()
     zola_table_dc[:, [2, 3, 4]] = zola_table_dc[:, [2, 3, 4]] - bf_drift_framed[:, [1, 2, 3]]
     zola_table_dc[:, [11, 12, 13]] = bf_drift_framed[:, [1, 2, 3]]
-    return zola_table_dc
+    zola_dc_wo_bf = zola_table_dc
+    if maxbg > 0:
+        zola_dc_wo_bf = zola_table_dc[zola_table_dc[:,6] < maxbg]
+    return zola_dc_wo_bf, bf_table
 

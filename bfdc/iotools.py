@@ -168,7 +168,7 @@ def update_frame_number(table,start,skip):
     :param skip: every skip-th frame from selection
     :return: table with updated frame column
     """
-    if skip > 0:
+    if skip > 0 or start > 0:
         if table[0,0] == 1:
             table[:,0] -=1
         elif table[0,0] == 0:
@@ -179,6 +179,21 @@ def update_frame_number(table,start,skip):
         table[:,0] += start - 1
         logger.info("update_frame_number: Updated frame numbers successfully")
     return table
+
+def put_trace_lock(path, name="BFDC_.lock"):
+    f = open(path + os.sep + name, mode='w')
+    f.close()
+    logger.info('Setting lock')
+    return path + os.sep + name
+
+def remove_trace_lock(path):
+    try:
+        os.remove(path)
+        logger.info('Removing lock')
+        return 0
+    except IOError:
+        logger.error('Problem removing lock')
+        return 1
 
 
 def parse_input():
@@ -202,6 +217,8 @@ def parse_input():
     trace_parser.add_argument('--nframes', type=int, default=None, help='now many frames to analyse from the movie. Default: None')
     trace_parser.add_argument('--driftFileName', type=str, default='BFCC_table',
                               help='filename for the drift table. Default: "BFCC_table.csv"')
+    trace_parser.add_argument('--minsignal', type=int, default=100,
+                              help='Threshold of mean intensity to treat the image as brightfield. Default: 100')
     trace_parser.add_argument('--skip', type=int, default=0,
                               help='how many frames to skip form the movie. Default: 0')
     trace_parser.add_argument('--start', type=int, default=0,
@@ -210,6 +227,8 @@ def parse_input():
                               help='channel index (starts with 1) for the movie. Default: 2')
     trace_parser.add_argument('--channel_position', type=int, default=1,
                               help='channel position (starts with 0) for the movie. Default: 1')
+    trace_parser.add_argument('--lock', type=int, default=0,
+                              help='if 1, will create BFDC_.lock file in the movie folder. Default: 0')
 
     # apply
     apply_parser = subparsers.add_parser('apply', help='apply drift 3D to ZOLA table')
@@ -222,7 +241,8 @@ def parse_input():
     apply_parser.add_argument('--start', type=int, default=0,
                               help='how many frames to skip in the beginning of the movie. Default: 0')
 
-    apply_parser.add_argument('--smooth', type=int, default=0, help='gaussian smoothing for the drift')
+    apply_parser.add_argument('--smooth', type=int, default=0, help='gaussian smoothing for the drift. Default: 0')
+    apply_parser.add_argument('--maxbg', type=int, default=0, help='reject localizations with high background. Default: 0')
 
     return parser
 

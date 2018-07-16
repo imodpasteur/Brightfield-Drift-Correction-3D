@@ -24,6 +24,8 @@ def mymain(myargs=None):
         roi = read_roi(roi_path)
 
         movie_path = get_abs_path(args.movie)
+        if args.lock:
+            lock = put_trace_lock(os.path.dirname(movie_path))
         logger.info(f'\nOpening movie {args.movie}')
         # movie = io.imread(movie_path)
         movie, [_] = pio.load_movie(movie_path)
@@ -52,6 +54,10 @@ def mymain(myargs=None):
         else:
             logger.info('Drift table empty, exiting')
 
+
+        if args.lock:
+            unlock = remove_trace_lock(lock)
+
     if args.command == 'apply':
         logger.debug(args)
         zola_path = get_abs_path(args.zola_table)
@@ -66,12 +72,16 @@ def mymain(myargs=None):
             bf_table[:, 1:4] = gf1(bf_table[:, 1:4], sigma=args.smooth, axis=0)
 
         logger.info(f'Applying drift')
-        zola_table_dc = apply_drift(bf_table=bf_table, zola_table=zola_table, start=args.start, skip=args.skip)
+        zola_table_dc, bf_table_int = apply_drift(bf_table=bf_table,
+                                                  zola_table=zola_table,
+                                                  start=args.start,
+                                                  skip=args.skip,
+                                                  maxbg=args.maxbg)
 
         path = os.path.splitext(zola_path)[0] + f'_BFDC_smooth_{args.smooth}.csv'
         logger.info(f'saving results to {path}')
         save_zola_table(zola_table_dc, path)
-        save_drift_plot(move_drift_to_zero(bf_table), os.path.splitext(path)[0] + '.png')
+        save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png')
 
     else:
         parser.print_help()

@@ -9,11 +9,8 @@ Use bright field signal to trace the drift in 3D with nanometer precision.
 * scikit-image
 
 ## Installation
-`git clone https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git`
 
-`cd Brightfield_Drift_Tracking_3D`
-
-`python setup.py install`
+`pip install git+https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git@dev`
 
 ## Usage
 
@@ -27,7 +24,7 @@ You'll need to select a contrast region say 32x32 picels from the dict.tif and s
 `python -m bfdc trace dict.tif crop.roi movie.tif`
 
 ### Applying drift to ZOLA table:
-`python -m bfdc trace ZOLA_localization_table.csv BFCC_table.csv --smooth 10`
+`python -m bfdc apply ZOLA_localization_table.csv BFCC_table.csv --smooth 10`
 
 ### Help and possible arguments:
 
@@ -66,5 +63,13 @@ Note, how Nikon's Perfect Focus System struggles to maintain the focus!
 Fluorescent bead track before and after BFDC.
 
 ![input](img/bead_track_color.png) -> ![input](img/bead_track_color_BFDC.png) 
+
+# Change log
+
+v0.1.2 Removing localizations from the ZOLA table if they come from bright field. 
+
+v0.1.1 Automatically detecting BF frames based on intensity. No more need of skipping parameters to know.
+
+
  
 
