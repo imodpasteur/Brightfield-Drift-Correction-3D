@@ -77,6 +77,7 @@ class DriftFitter:
 
                     if cc.max() < min_xcorr:
                         logger.warning(f'xcorr value is still lower than {min_xcorr}, skipping the frame')
+                        problems.append(i + 1)
                         continue
                     # out.append(cc_max(cc) limits)
                     try:
