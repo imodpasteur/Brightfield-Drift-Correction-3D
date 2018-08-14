@@ -58,7 +58,7 @@ def mymain(myargs=None):
         if args.lock:
             unlock = remove_trace_lock(lock)
 
-    if args.command == 'apply':
+    elif args.command == 'apply':
         logger.debug(args)
         zola_path = get_abs_path(args.zola_table)
         bf_path = get_abs_path(args.drift_table)
