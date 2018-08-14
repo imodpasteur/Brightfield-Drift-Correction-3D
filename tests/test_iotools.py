@@ -2,7 +2,7 @@ from unittest import TestCase
 import numpy as np
 from bfdc.iotools import check_stacks_size_equals, check_multi_channel,skip_stack
 import logging
-from picasso import io as pio
+import bfdc.picassoio as pio
 
 logger = logging.getLogger(__name__)
 
