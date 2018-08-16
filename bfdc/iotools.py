@@ -243,6 +243,7 @@ def parse_input():
 
     apply_parser.add_argument('--smooth', type=int, default=0, help='gaussian smoothing for the drift. Default: 0')
     apply_parser.add_argument('--maxbg', type=int, default=0, help='reject localizations with high background. Default: 0')
+    apply_parser.add_argument('--zinvert',type=int, default=0, help='invert z axis for drift')
 
     return parser
 
