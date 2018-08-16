@@ -74,6 +74,7 @@ def mymain(myargs=None):
         logger.info(f'Applying drift')
         zola_table_dc, bf_table_int = apply_drift(bf_table=bf_table,
                                                   zola_table=zola_table,
+                                                  smooth=args.smooth,
                                                   start=args.start,
                                                   skip=args.skip,
                                                   maxbg=args.maxbg,
