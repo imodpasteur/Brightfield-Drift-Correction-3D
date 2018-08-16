@@ -76,7 +76,8 @@ def mymain(myargs=None):
                                                   zola_table=zola_table,
                                                   start=args.start,
                                                   skip=args.skip,
-                                                  maxbg=args.maxbg)
+                                                  maxbg=args.maxbg,
+                                                  zinvert=args.zinvert)
 
         path = os.path.splitext(zola_path)[0] + f'_BFDC_smooth_{args.smooth}.csv'
         logger.info(f'saving results to {path}')
