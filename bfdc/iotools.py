@@ -169,9 +169,9 @@ def update_frame_number(table,start,skip):
     :return: table with updated frame column
     """
     if skip > 0 or start > 0:
-        if table[0,0] == 1:
-            table[:,0] -=1
-        elif table[0,0] == 0:
+        if table[0, 0] == 1:
+            table[:, 0] -=1
+        elif table[0, 0] == 0:
             pass
         else:
             raise(ValueError("update_frame_number: Wrong table. Expected frame numbers starting with 0 or 1"))
@@ -243,8 +243,6 @@ def parse_input():
 
     apply_parser.add_argument('--smooth', type=int, default=0, help='gaussian smoothing for the drift. Default: 0')
     apply_parser.add_argument('--maxbg', type=int, default=0, help='reject localizations with high background. Default: 0')
-    apply_parser.add_argument('--zinvert',type=int, default=0, help='invert z axis for drift')
+    apply_parser.add_argument('--zinvert',type=int, default=0, help='invert z axis for drift. Default: 0')
 
     return parser
-
-
