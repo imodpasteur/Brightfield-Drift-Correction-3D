@@ -69,6 +69,7 @@ def mymain(myargs=None):
         bf_table = open_csv_table(bf_path)
 
         if args.smooth > 0:
+            logger.info(f'Apply gaussian filter to the drift with sigma = {args.smooth}')
             bf_table[:, 1:4] = gf1(bf_table[:, 1:4], sigma=args.smooth, axis=0)
 
         logger.info(f'Applying drift')

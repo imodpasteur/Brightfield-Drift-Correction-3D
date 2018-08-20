@@ -56,7 +56,7 @@ def open_csv_table(path,showHeader = False):
 def save_zola_table(table, path):
     header = 'id,frame,x [nm],y [nm],z [nm],intensity,background,chi2,crlbX,crlbY,crlbZ,driftX,driftY,driftZ,' \
              'occurrenceMerging '
-    np.savetxt(path, table, fmt='%.2f', delimiter=',', comments='', newline='\r\n', header=header)
+    np.savetxt(path, table[:,:15], fmt='%.2f', delimiter=',', comments='', newline='\r\n', header=header)
 
 
 def save_drift_plot(table, path):
