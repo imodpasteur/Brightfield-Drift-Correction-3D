@@ -8,9 +8,9 @@ logger = logging.getLogger(__name__)
 def mymain(myargs=None):
     parser = parse_input()
     if myargs is None:
-        args = parser.parse_args(myargs)
-    else:
         args = parser.parse_args()
+    else:
+        args = parser.parse_args(myargs)
     logger.debug(args)
 
     if args.command == 'trace':
