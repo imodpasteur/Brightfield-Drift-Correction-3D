@@ -60,6 +60,7 @@ def save_zola_table(table, path):
 
 
 def save_drift_plot(table, path):
+    fig = plt.figure()
     plt.plot(table[:, 0], table[:, 1:])
     plt.xlabel('frame')
     plt.ylabel('Drift, nm')
@@ -67,6 +68,7 @@ def save_drift_plot(table, path):
     plt.title('Drift BF, nm')
     plt.grid()
     plt.savefig(path)
+    plt.close()
     logger.info(f"Saved drift plot to {path}")
 
 
