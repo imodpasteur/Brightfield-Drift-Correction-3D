@@ -1,7 +1,0 @@
-python>=3.6
-scikit-image
-numpy
-scipy
-matplotlib
-read-roi
-
