@@ -66,7 +66,7 @@ Fluorescent bead track before and after BFDC.
 
 # Change log
 
-V0.1.4 Batch processing
+V0.1.4 Batch processing 
 
 V0.1.3 Avoid plots ovelaps from diffrent datasets
 
