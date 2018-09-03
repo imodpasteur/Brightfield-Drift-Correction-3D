@@ -1,7 +1,7 @@
 from unittest import TestCase,skip
 import numpy as np
 from bfdc.iotools import check_stacks_size_equals
-from bfdc.__main__ import commandline_main
+from bfdc.drift import main
 import sys, os
 import logging
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class TestMain(TestCase):
                f'{par["movie"]}',
                f'--nframes {par["nframes"]}']
 
-        commandline_main(par)
+        main(par)
 
 
 
