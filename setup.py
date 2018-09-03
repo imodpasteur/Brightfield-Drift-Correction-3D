@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='bfdc',
-    version='0.1.3',
+    version='0.1.4',
     packages=['bfdc'],
     install_requires=[
         'scikit-image',
