@@ -66,6 +66,8 @@ Fluorescent bead track before and after BFDC.
 
 # Change log
 
+V0.1.3 Avoid plots ovelaps from diffrent datasets
+
 v0.1.2 Removing localizations from the ZOLA table if they come from bright field. 
 
 v0.1.1 Automatically detecting BF frames based on intensity. No more need of skipping parameters to know.
