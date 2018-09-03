@@ -323,7 +323,7 @@ def batch_drift(path,
                 sr_folder_prefix='sr_',
                 sr_movie_suffix='Pos0.ome.tif',
                 zola_dc_filename="ZOLA*BFCC*.csv",
-                dc_tabel_filename="BFCC*.csv",
+                dc_table_filename="BFCC*.csv",
                 zola_raw_filename="ZOLA_localization_table.csv",
                 zola_lock_filename="ZOLA_.lock",
                 apply_smooth=50,
@@ -372,24 +372,22 @@ def batch_drift(path,
                          pattern=sr_folder_prefix + "*" + sep + "*" + sr_movie_suffix)
 
     def batch_trace_drift(bfdict, roi, movie):
-        bfout = glob(parent(movie) + sep + dc_tabel_filename)
-        lock = glob(parent(movie) + sep + zola_lock_filename)
-        if bfout == [] and lock == []:
+        bfout = glob(parent(movie) + sep + dc_table_filename)
+        if not bfout:
             logger.info("start BF tracking")
 
             args = ["trace", bfdict, roi, movie, '--lock', '1']
             main(args=args)
 
-        elif len(lock) == 1:
-            logger.info('Found BFDC_.lock --- skipping')
+        else:
+            logger.info('Found BFDC table --- skipping')
 
     def batch_apply_drift(movie:str,
                     smoothing:int=apply_smooth,
-                    max_bg:int=filter_bg
-                    ):
+                    max_bg:int=filter_bg):
         zola_dc_table = glob(parent(movie) + sep + zola_dc_filename)
-        if zola_dc_table == []:
-            drift_tables = glob(parent(movie) + sep + dc_tabel_filename)
+        if not zola_dc_table:
+            drift_tables = glob(parent(movie) + sep + dc_table_filename)
             for drift_table in drift_tables:
                 logger.info(f"Found {base(drift_table)}")
                 zola_table = glob(parent(drift_table) + sep + zola_raw_filename)
@@ -520,7 +518,7 @@ def main(args=None):
         save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png')
 
     elif args.command == 'batch':
-        batch_drift(args)
+        batch_drift(path=args.path)
     else:
         parser.print_help()
 

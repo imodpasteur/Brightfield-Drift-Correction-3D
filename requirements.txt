@@ -1,7 +1,6 @@
-python>=3.6
 scikit-image
 numpy
 scipy
-matplotlib
+matplotlib<2.2
 read-roi
 

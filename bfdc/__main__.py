@@ -1,3 +1,5 @@
+import matplotlib as mpl
+mpl.use('TkAgg')
 from bfdc.drift import *
 from skimage import io
 import bfdc.picassoio as pio
