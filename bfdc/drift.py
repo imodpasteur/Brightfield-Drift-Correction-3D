@@ -295,10 +295,10 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
     print(f'Frame number for zola/bf_DC : {zola_frame_num}/{bf_frame_num}')
 
     if bf_frame_num < zola_frame_num:
-        print(f'Truncating ZOLA table to {bf_frame_num} frames')
+        logger.info(f'Truncating ZOLA table to {bf_frame_num} frames')
         zola_table = zola_table[zola_table[:, 1] < bf_frame_num]
-        fnum = int(np.max(zola_table[:, 1]))
-        print(f'New frame number: {fnum}')
+        #fnum = int(np.max(zola_table[:, 1]))
+        #print(f'New frame number: {fnum}')
 
     frame_nums = np.array(zola_table[:, 1], dtype='int')
     bf_drift_framed = bf_table[frame_nums - 1]
@@ -338,7 +338,8 @@ def batch_drift(path,
     def parse_fovs(path):
         fov_list = glob(pathname=path + sep + fov_prefix + "*" + sep)
         logger.info(f'Found {len(fov_list)} folders starting with FOV')
-        logger.info(fov_list)
+        for i,f in enumerate(fov_list):
+            logger.info(f'{i} -- {relative(f,path)}')
         return fov_list
 
     def find_file(path, name, pattern, expected_number=None):
@@ -377,7 +378,7 @@ def batch_drift(path,
             logger.info("start BF tracking")
 
             args = ["trace", bfdict, roi, movie, '--lock', '1']
-            main(args=args)
+            main(argsv=args)
 
         else:
             logger.info('Found BFDC table --- skipping')
@@ -392,12 +393,12 @@ def batch_drift(path,
                 logger.info(f"Found {base(drift_table)}")
                 zola_table = glob(parent(drift_table) + sep + zola_raw_filename)
                 z_lock = glob(parent(drift_table) + sep + zola_lock_filename)
-                if len(zola_table) == 1 and len(z_lock) == 0:
+                if zola_table and not z_lock:
                     logger.info(f'Found {base(zola_table[0])}')
                     logger.info("Apply drift")
 
-                    args = ["apply", zola_table[0], drift_table, "--smooth", smoothing, "--maxbg", max_bg]
-                    main(args=args)
+                    args = f"apply {zola_table[0]} {drift_table} --smooth={str(smoothing)} --maxbg={str(max_bg)}"
+                    main(argsv=args.split())
                 elif len(z_lock) == 1:
                     logger.info(f'Found {base(z_lock[0])} --- skipping')
                 else:
@@ -430,13 +431,17 @@ def batch_drift(path,
     return 0
 
 
-def main(args=None):
+def main(argsv=None):
     parser = parse_input()
-    if args is None:
-        args = parser.parse_args()
-    else:
-        args = parser.parse_args(args)
-    logger.debug(args)
+    try:
+        if argsv is None:
+            args = parser.parse_args()
+        else:
+            args = parser.parse_args(argsv)
+    except TypeError:
+        logger.error('Wrong args while parsing: ',argsv)
+        exit(1)
+    logger.debug(argsv)
 
     if args.command == 'trace':
         cal_path = get_abs_path(args.dict)
@@ -483,7 +488,6 @@ def main(args=None):
         else:
             logger.info('Drift table empty, exiting')
 
-
         if args.lock:
             unlock = remove_trace_lock(lock)
 
@@ -492,7 +496,7 @@ def main(args=None):
         zola_path = get_abs_path(args.zola_table)
         bf_path = get_abs_path(args.drift_table)
 
-        logger.info(f'Opening data')
+        logger.info(f'Opening localization table')
         zola_table = open_csv_table(zola_path)
         logger.info(f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
         bf_table = open_csv_table(bf_path)
