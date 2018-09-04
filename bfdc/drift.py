@@ -315,7 +315,7 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
     return zola_dc_wo_bf, bf_table
 
 
-def batch_drift(path,
+def batch_drift(batch_path,
                 fov_prefix='FOV',
                 dict_folder_prefix='dict_',
                 roi_suffix='roi',
@@ -411,8 +411,8 @@ def batch_drift(path,
     # path = filedialog.askdirectory()
     # path = input("Please provide a folder path:")
     # path = os.path.abspath(path)
-    logger.info(path)
-    fov_list = parse_fovs(path)
+    logger.info(batch_path)
+    fov_list = parse_fovs(batch_path)
     logger.info(f'Found {len(fov_list)} folders starting with FOV')
     # print('#FOV,\tROI,\tlocs,\tgir(nm),\tellipticity')
 
@@ -445,26 +445,22 @@ def main(argsv=None):
 
     if args.command == 'trace':
         cal_path = get_abs_path(args.dict)
-        logger.info(f'\nOpening calibration {args.dict}')
+        logger.info(f'Opening calibration {args.dict}')
         cal_stack = io.imread(cal_path)
         logger.info(f'Imported dictionary {cal_stack.shape}')
 
         roi_path = get_abs_path(args.roi)
-        logger.info(f'\nOpening roi {args.roi}')
+        logger.info(f'Opening roi {args.roi}')
         roi = read_roi(roi_path)
 
         movie_path = get_abs_path(args.movie)
         if args.lock:
             lock = put_trace_lock(os.path.dirname(movie_path))
-        logger.info(f'\nOpening movie {args.movie}')
+        logger.info(f'Opening movie {args.movie}')
         # movie = io.imread(movie_path)
         movie, [_] = pio.load_movie(movie_path)
         logger.info(f'Imported movie {movie.shape}')
 
-        # ch_index = args.channel
-        # ch_pos = args.channel_position
-
-        # movie = check_multi_channel(movie,channel=ch_index,channel_position=ch_pos)
         size_check = check_stacks_size_equals(cal_stack, movie)
 
         if size_check:
@@ -522,7 +518,7 @@ def main(argsv=None):
         save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png')
 
     elif args.command == 'batch':
-        batch_drift(path=args.path)
+        batch_drift(batch_path=args.path)
     else:
         parser.print_help()
 
