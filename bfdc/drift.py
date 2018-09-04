@@ -320,9 +320,9 @@ def batch_drift(batch_path,
                 dict_folder_prefix='dict_',
                 roi_suffix='roi',
                 dict_suffix='ome.tif',
-                sr_folder_prefix='sr_',
+                sr_folder_prefix='sr',
                 sr_movie_suffix='Pos0.ome.tif',
-                zola_dc_filename="ZOLA*BFCC*.csv",
+                zola_dc_filename="ZOLA*BFDC*.csv",
                 dc_table_filename="BFCC*.csv",
                 zola_raw_filename="ZOLA_localization_table.csv",
                 zola_lock_filename="ZOLA_.lock",
@@ -338,7 +338,7 @@ def batch_drift(batch_path,
     def parse_fovs(path):
         fov_list = glob(pathname=path + sep + fov_prefix + "*" + sep)
         logger.info(f'Found {len(fov_list)} folders starting with FOV')
-        for i,f in enumerate(fov_list):
+        for i,f in enumerate(sorted(fov_list)):
             logger.info(f'{i} -- {relative(f,path)}')
         return fov_list
 
@@ -417,14 +417,18 @@ def batch_drift(batch_path,
     # print('#FOV,\tROI,\tlocs,\tgir(nm),\tellipticity')
 
     for fov in sorted(fov_list):
+        logger.info(f'Processing {relative(fov,batch_path)}')
         roi = find_roi(fov)
+        print(roi)
         if roi:
             bfdict = find_dict(roi[0])[0]
             movies = find_movies(fov)
-            for movie in movies:
-                batch_trace_drift(bfdict, roi[0], movie)
-                batch_apply_drift(movie)
-
+            if movies:
+                for movie in movies:
+                    batch_trace_drift(bfdict, roi[0], movie)
+                    batch_apply_drift(movie)
+            else:
+                logger.info(f'No movies found with \"{sr_folder_prefix}\" prefix')
             # print('')
         else:
             logger.info('No ROI')
