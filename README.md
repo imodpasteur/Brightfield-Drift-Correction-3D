@@ -41,20 +41,21 @@ Expected file structure:
 
 
 * data_folder 
-  * FOV1
-    * dict_LED_100nm
-      *  dict_LED_100nm_Pos0.ome.tif
-      * 32x32.roi
-    * sr_ast_642_LEDskip9
-      * sr_ast_642_LEDskip9.Pos0.ome.tif
+  * **FOV1**
+    * **dict**_LED_100nm
+      *  dict_LED_100nm_Pos0.**ome.tif**
+      * 32x32.**roi**
+    * **sr**_ast_642_LEDskip9
+      * **sr**_ast_642_LEDskip9.**Pos0.ome.tif**
+      * **sr**_ast_642_LEDskip9.Pos0_1.ome.tif
       * ZOLA_localization_table.csv
   * FOV2
     * ... 
      
 The possible arguments include:                                              
-* Parsing folders with fields of views (`--fov_prefix=FOV`)
+* Recurcively parsing folders with fields of views (`--fov_prefix=FOV`)
 * Looking for the folder with dictionary stack (`--dict_folder_prefix=dict`)
-* Finding ROI file (`--ROI_suffix = roi`)
+* Finding ROI file (`--ROI_suffix=roi`)
 * Opening dictionary stack next to ROI (`--dict_suffix=ome.tif`)
 * Opening STORM movie with bright field frames (`--sr_folder prefix=sr`, `--sr_movie_suffix=Pos0.ome.tif`)
 * Automatically selects brightfield frames with background more than (`--filter_bg=100`)
