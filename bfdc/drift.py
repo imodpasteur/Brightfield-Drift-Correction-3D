@@ -348,8 +348,11 @@ def batch_drift(batch_path,
             #flist[0]
             if expected_number:
                 assert len(flist) == expected_number, f'Found {len(flist)} {name}s, while expected {expected_number}'
-            for f in flist:
-                logger.info(f'{base(path)}: Found {name}: {base(f)}')
+            if flist:
+                for f in flist:
+                    logger.info(f'{base(path)}: Found {name}: {relative(f,path)}')
+            else:
+                logger.info(f'No {name} was found using pattern \"{pattern}\"')
             return flist
         except IndexError:
             logger.info(f'{base(path)}: No {name}')
@@ -424,7 +427,8 @@ def batch_drift(batch_path,
             bfdict = find_dict(roi[0])[0]
             movies = find_movies(fov)
             if movies:
-                for movie in movies:
+                for i,movie in enumerate(movies):
+                    logger.info(f'Processing movie {i+1}/{len(movies)}: {relative(movie,batch_path)}')
                     batch_trace_drift(bfdict, roi[0], movie)
                     batch_apply_drift(movie)
             else:
