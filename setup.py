@@ -13,7 +13,7 @@ setup(
         'read-roi'
     ],
     url='https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git',
-    license='BSD',
+    license='MIT',
     author='Andrey Aristov',
     author_email='aaristov@pasteur.fr',
     description='Acquire bright field images along with the super resolution data and use it to track drift in 3D with nanometer precision!'

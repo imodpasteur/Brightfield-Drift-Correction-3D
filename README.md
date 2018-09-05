@@ -10,6 +10,14 @@ Use bright field signal to trace the drift in 3D with nanometer precision.
 
 ## Installation
 
+With conda create a new environment with python 3.6:
+
+`conda create -n pydrift python=3.6`
+
+Then activate it and run installation:
+
+`source activate pydrift`
+
 `pip install git+https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git@dev`
 
 ## Usage
@@ -26,6 +34,9 @@ You'll need to select a contrast region say 32x32 picels from the dict.tif and s
 ### Applying drift to ZOLA table:
 `python -m bfdc apply ZOLA_localization_table.csv BFCC_table.csv --smooth 10`
 
+### Tracing and applying the drift in batch:
+`python -m bfdc batch path `
+
 ### Help and possible arguments:
 
 `python -m bfdc -h`
@@ -33,6 +44,8 @@ You'll need to select a contrast region say 32x32 picels from the dict.tif and s
 `python -m bfdc trace -h`
 
 `python -m bfdc apply -h`
+
+`python -m bfdc batch -h`
 
 # Example of use
  
