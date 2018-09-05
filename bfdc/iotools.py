@@ -260,7 +260,7 @@ def parse_input():
                                                        Parsing folders with fields of views (fov_prefix)\n
                                                        Looking for the folder with dictionary stack (dict_folder_prefix)\n
                                                        Finding ROI file (ROI_suffix)\n
-                                                       Opening dictionare stack (dict_suffix)\n
+                                                       Opening dictionary stack next to ROI (dict_suffix)\n
                                                        Opening STORM movie with bright field frames (sr_folder prefix, sr_movie_suffix)\n
                                                        Automatically selects brightfield frames with background more than (filter_bg)\n
                                                        
