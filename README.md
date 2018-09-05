@@ -41,7 +41,7 @@ Expected file structure:
 
 
 * data_folder 
-  * **FOV1**
+  * **FOV**1
     * **dict**_LED_100nm
       *  dict_LED_100nm_Pos0.**ome.tif**
       * 32x32.**roi**
