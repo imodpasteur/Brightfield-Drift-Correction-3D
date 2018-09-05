@@ -53,7 +53,7 @@ Expected file structure:
     * ... 
      
 The possible arguments include:                                              
-* Recurcively parsing folders with fields of views (`--fov_prefix=FOV`)
+* Recursively parsing folders with fields of views (`--fov_prefix=FOV`)
 * Looking for the folder with dictionary stack (`--dict_folder_prefix=dict`)
 * Finding ROI file (`--ROI_suffix=roi`)
 * Opening dictionary stack next to ROI (`--dict_suffix=ome.tif`)
