@@ -248,29 +248,46 @@ def parse_input():
     apply_parser.add_argument('--zinvert',type=int, default=0, help='invert z axis for drift. Default: 0')
 
     # batch
-    batch_parser = subparsers.add_parser('batch', help='''Batch trace and apply drift 3D to ZOLA table\n
-                                                       Expected file structure:\n
-                                                       data_folder\n
-                                                       -- dict_LED_100nm\n
-                                                       -- -- dict_LED_100nm_Pos0.ome.tif\n
-                                                       -- -- 32x32.roi\n
-                                                       -- sr_ast_642_LEDskip9\n
-                                                       -- -- sr_ast_642_LEDskip9.Pos0.ome.tif\n
-                                                       -- -- ZOLA_localization_table.csv\n                                                       
-                                                       Parsing folders with fields of views (fov_prefix)\n
-                                                       Looking for the folder with dictionary stack (dict_folder_prefix)\n
-                                                       Finding ROI file (ROI_suffix)\n
-                                                       Opening dictionary stack next to ROI (dict_suffix)\n
-                                                       Opening STORM movie with bright field frames (sr_folder prefix, sr_movie_suffix)\n
-                                                       Automatically selects brightfield frames with background more than (filter_bg)\n
-                                                       
-                                                       ''')
-    batch_parser.add_argument('path', type=str, default='',
+    batch_parser = subparsers.add_parser('batch', help='''Batch trace and apply drift 3D to ZOLA table''')
+    batch_parser.add_argument('batch_path', type=str, default='',
                               help='data path')
     batch_parser.add_argument('--fov_prefix', type=str, default='FOV',
-                              help='How you name fields of view')
-    batch_parser.add_argument('--smooth', type=int, default=0, help='gaussian smoothing for the drift. Default: 0')
-    batch_parser.add_argument('--maxbg', type=int, default=0, help='reject localizations with high background. Default: 0')
+                              help='Prefix of a folder with a single field of view. Default: FOV ')
+
+    batch_parser.add_argument('--dict_folder_prefix', type=str, default='dict',
+                              help='Prefix of the dictionary folder')
+
+    batch_parser.add_argument('--ROI_suffix', type=str, default='roi',
+                              help='Extension of roi file. Default: roi')
+
+    batch_parser.add_argument('--dict_suffix', type=str, default='ome.tif',
+                              help='Extension of dictionary stack file. Default: ome.tif')
+
+    batch_parser.add_argument('--sr_folder_prefix', type=str, default='sr',
+                              help='Prefix of the super-resolution movie folder. Default: sr')
+
+    batch_parser.add_argument('--sr_movie_suffix', type=str, default='Pos0.ome.tif',
+                              help='Extension of super-resolution movie stack file. Default: Pos0.ome.tif')
+
+    batch_parser.add_argument('--zola_dc_filename', type=str, default='ZOLA*BFDC*.csv',
+                              help='ZOLA DC table name. Default: ZOLA*BFDC*.csv')
+
+    batch_parser.add_argument('--dc_table_filename', type=str, default='BFCC*.csv',
+                              help='Drift track table name. Default: BFCC*.csv')
+
+    batch_parser.add_argument('--zola_raw_filename', type=str, default='ZOLA_localization_table.csv',
+                              help='ZOLA localization table name. Default: ZOLA_localization_table.csv')
+
+    batch_parser.add_argument('--zola_lock_filename', type=str, default='ZOLA_.lock',
+                              help='ZOLA DC table name. Default: ZOLA_.lock')
+
+    batch_parser.add_argument('--smooth', type=int, default=50, help='gaussian smoothing for the drift. Default: 50')
+    batch_parser.add_argument('--filter_bg', type=int, default=100,
+                              help='''Use this value to detect BF frames. 
+                                   Frames with the mean value more than this number are counted as bright field.
+                                   In the reconstuction table, background more than this number will be filtered out.
+                                   Default: 100
+                                   ''')
     batch_parser.add_argument('--zinvert',type=int, default=0, help='invert z axis for drift. Default: 0')
 
     return parser

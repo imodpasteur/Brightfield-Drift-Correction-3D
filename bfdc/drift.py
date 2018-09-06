@@ -326,9 +326,9 @@ def batch_drift(batch_path,
                 dc_table_filename="BFCC*.csv",
                 zola_raw_filename="ZOLA_localization_table.csv",
                 zola_lock_filename="ZOLA_.lock",
-                apply_smooth=50,
-                filter_bg=100
-                ):
+                smooth=50,
+                filter_bg=100,
+                **kwargs):
 
     sep = os.path.sep
     base = lambda path: os.path.basename(os.path.normpath(path))
@@ -387,8 +387,8 @@ def batch_drift(batch_path,
             logger.info('Found BFDC table --- skipping')
 
     def batch_apply_drift(movie:str,
-                    smoothing:int=apply_smooth,
-                    max_bg:int=filter_bg):
+                          smoothing:int=smooth,
+                          max_bg:int=filter_bg):
         zola_dc_table = glob(parent(movie) + sep + zola_dc_filename)
         if not zola_dc_table:
             drift_tables = glob(parent(movie) + sep + dc_table_filename)
@@ -422,7 +422,6 @@ def batch_drift(batch_path,
     for fov in sorted(fov_list):
         logger.info(f'Processing {relative(fov,batch_path)}')
         roi = find_roi(fov)
-        print(roi)
         if roi:
             bfdict = find_dict(roi[0])[0]
             movies = find_movies(fov)
@@ -449,8 +448,7 @@ def main(argsv=None):
     except TypeError:
         logger.error('Wrong args while parsing: ',argsv)
         exit(1)
-    logger.debug(argsv)
-
+    print(args)
     if args.command == 'trace':
         cal_path = get_abs_path(args.dict)
         logger.info(f'Opening calibration {args.dict}')
@@ -526,7 +524,7 @@ def main(argsv=None):
         save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png')
 
     elif args.command == 'batch':
-        batch_drift(batch_path=args.path)
+        batch_drift(**vars(args))
     else:
         parser.print_help()
 
