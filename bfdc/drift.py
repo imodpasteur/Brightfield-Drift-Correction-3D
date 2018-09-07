@@ -296,7 +296,6 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
     frame_nums = np.array(zola_table[:, 1], dtype='int')
     bf_drift_framed = bf_table[frame_nums - 1]
 
-
     zola_table_dc = zola_table.copy()
     zola_table_dc[:, [2, 3, 4]] = zola_table_dc[:, [2, 3, 4]] - bf_drift_framed[:, [1, 2, 3]]
     zola_table_dc[:, [11, 12, 13]] = bf_drift_framed[:, [1, 2, 3]]

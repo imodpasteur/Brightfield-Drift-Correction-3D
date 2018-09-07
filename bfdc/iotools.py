@@ -68,14 +68,17 @@ def save_zola_table(table, path):
     np.savetxt(path, table[:,:15], fmt='%.2f', delimiter=',', comments='', newline='\r\n', header=header)
 
 
-def save_drift_plot(table, path):
-    fig = plt.figure()
+def plot_drift(table):
     plt.plot(table[:, 0], table[:, 1:])
     plt.xlabel('frame')
     plt.ylabel('Drift, nm')
     plt.legend(['x', 'y', 'z'])
     plt.title('Drift BF, nm')
     plt.grid()
+
+
+def save_drift_plot(table, path):
+    plot_drift(table)
     plt.savefig(path)
     plt.close()
     logger.info(f"Saved drift plot to {path}")

@@ -9,7 +9,7 @@ setup(
         'pillow>5.1',
         'numpy',
         'scipy',
-        'matplotlib<>2.2.3',
+        'matplotlib<2.2.3',
         'read-roi'
     ],
     url='https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git',
