@@ -5,12 +5,21 @@ import os
 import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy.ndimage import gaussian_filter1d as gf1
+from scipy import io
+import bfdc.picassoio as pio
 import subprocess
 
 import logging
 
 logger = logging.getLogger(__name__)
 
+
+def open_stack(path):
+    return io.imread(path)
+
+def open_virtual_stack(path):
+    movie,[_] = pio.load_movie(path)
+    return movie
 
 def save_drift_table(table: np.ndarray, path):
     save_table(table, path, fmt='drift_table')
@@ -182,11 +191,13 @@ def update_frame_number(table,start,skip):
         logger.info("update_frame_number: Updated frame numbers successfully")
     return table
 
+
 def put_trace_lock(path, name="BFDC_.lock"):
     f = open(path + os.sep + name, mode='w')
     f.close()
     logger.info('Setting lock')
     return path + os.sep + name
+
 
 def remove_trace_lock(path):
     try:
