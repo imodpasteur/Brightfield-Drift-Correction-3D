@@ -5,7 +5,7 @@ import os
 import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy.ndimage import gaussian_filter1d as gf1
-from scipy import io
+from skimage import io
 import bfdc.picassoio as pio
 import subprocess
 
@@ -17,9 +17,11 @@ logger = logging.getLogger(__name__)
 def open_stack(path):
     return io.imread(path)
 
+
 def open_virtual_stack(path):
-    movie,[_] = pio.load_movie(path)
+    movie, [_] = pio.load_movie(path)
     return movie
+
 
 def save_drift_table(table: np.ndarray, path):
     save_table(table, path, fmt='drift_table')
@@ -29,7 +31,7 @@ def save_table(table, path: str, fmt: str = 'drift_table'):
     if fmt == 'drift_table':
         try:
             logger.info(f'Saving results to {path}')
-            np.savetxt(path+".csv", table, fmt='%.1f', delimiter=',', comments='', newline='\r\n',
+            np.savetxt(path + ".csv", table, fmt='%.1f', delimiter=',', comments='', newline='\r\n',
                        header='"frame","x [nm]","y [nm]","z [nm]"')
             print('')
         except IOError as e:
@@ -49,23 +51,23 @@ def get_parent_path(path):
     return os.path.abspath(os.path.join(path, os.pardir))
 
 
-def open_csv_table(path,showHeader = False):
+def open_csv_table(path, show_header=False):
     """
     Loads thunderstorm compatible csv table into numpy array
     First line is omitted as contains header
     :param path: path to the table.csv
-    :param showHeader: bool, shows 'head path'
+    :param show_header: bool, shows 'head path'
     :return: numpy array
     """
-    if showHeader:
-        subprocess.check_output(['head','-n','1',path])
+    if show_header:
+        subprocess.check_output(['head', '-n', '1', path])
     return np.loadtxt(path, delimiter=',', skiprows=1)
 
 
 def save_zola_table(table, path):
     header = 'id,frame,x [nm],y [nm],z [nm],intensity,background,chi2,crlbX,crlbY,crlbZ,driftX,driftY,driftZ,' \
              'occurrenceMerging '
-    np.savetxt(path, table[:,:15], fmt='%.2f', delimiter=',', comments='', newline='\r\n', header=header)
+    np.savetxt(path, table[:, :15], fmt='%.2f', delimiter=',', comments='', newline='\r\n', header=header)
 
 
 def plot_drift(table):
@@ -101,17 +103,17 @@ def interpolate_drift_table(table, start=0, skip=0, smooth=10):
 
     time = table[:, 0]
     # print(time.shape)
-    timeNew = np.arange(1, max(time) + 1)
-    newTable = np.zeros((len(timeNew), w))
-    newTable[:, 0] = timeNew
+    time_new = np.arange(1, max(time) + 1)
+    new_table = np.zeros((len(time_new), w))
+    new_table[:, 0] = time_new
     for col in range(1, w):
         y = table[:, col]
         # print(y.shape)
         f = interpolate.interp1d(time, y, fill_value='extrapolate')
-        ynew = f(timeNew)
-        newTable[:, col] = ynew
+        ynew = f(time_new)
+        new_table[:, col] = ynew
     logger.info(f'interpolating from {len(time)} to {len(ynew)} frames')
-    return newTable
+    return new_table
 
 
 def smooth_drift_table(table, sigma):
@@ -121,17 +123,17 @@ def smooth_drift_table(table, sigma):
     return table_smooth
 
 
-def check_stacks_size_equals(cal_stack,movie):
+def check_stacks_size_equals(cal_stack, movie):
     logger.info(f'check_stacks_size_equals: Input shapes {cal_stack.shape,movie.shape}')
     if len(cal_stack.shape) == len(movie.shape) == 3:
-        x1,x2 = cal_stack.shape[1],cal_stack.shape[2]
-        y1,y2 = movie.shape[1],movie.shape[2]
+        x1, x2 = cal_stack.shape[1], cal_stack.shape[2]
+        y1, y2 = movie.shape[1], movie.shape[2]
         return x1 == y1 and x2 == y2
     else:
-        raise(ValueError('cal_stack.shape: wrong shapes!'))
+        raise (ValueError('cal_stack.shape: wrong shapes!'))
 
 
-def check_multi_channel(movie,channel = 2, channel_position = 1):
+def check_multi_channel(movie, channel=2, channel_position=1):
     """
     Checks if stack contains channels and returns single channel stack
     :param movie: numpy array zxy or zcxy
@@ -147,24 +149,25 @@ def check_multi_channel(movie,channel = 2, channel_position = 1):
     elif ndim == 4:
         if channel_position == 1:
             logger.info(f'check_multi_channel: Returning shape {movie[:,channel-1].shape}')
-            return movie[:,channel-1]
+            return movie[:, channel - 1]
         elif channel_position == 0:
             logger.info(f'check_multi_channel: Returning shape {movie[channel-1].shape}')
-            return movie[channel-1]
+            return movie[channel - 1]
     else:
-        raise(TypeError(f'check_multi_channel: channel order not understood, movie shape {movie.shape}'))
+        raise (TypeError(f'check_multi_channel: channel order not understood, movie shape {movie.shape}'))
 
 
-def skip_stack(n_frames:int, start:int, skip:int, maxframes:int):
+def skip_stack(n_frames: int, start: int, skip: int, maxframes: int):
     """
     Now works with virtual stack
     :param n_frames: total frame number
     :param start: in case of skipping: first frame to pick up (starts form 1)
-    :param skip: number of frames skipped to get the right frame (for example, ch2 with alternating illumination refers to start=2,skip=1)
+    :param skip: number of frames skipped to get the right frame
+            (for example, ch2 with alternating illumination refers to start=2,skip=1)
     :param maxframes: maximum number of frames in case of cropped dataset
     :return: index list
     """
-    #logger.info('skip_stack: starting frame skipping routines')
+    # logger.info('skip_stack: starting frame skipping routines')
 
     index_list = np.arange(n_frames)
     if start > 0:
@@ -174,7 +177,7 @@ def skip_stack(n_frames:int, start:int, skip:int, maxframes:int):
     return index_list
 
 
-def update_frame_number(table,start,skip):
+def update_frame_number(table, start, skip):
     """
     updates frame number int the table using skip/start frames indices
     :param table: fxyz array
@@ -184,13 +187,13 @@ def update_frame_number(table,start,skip):
     """
     if skip > 0 or start > 0:
         if table[0, 0] == 1:
-            table[:, 0] -=1
+            table[:, 0] -= 1
         elif table[0, 0] == 0:
             pass
         else:
-            raise(ValueError("update_frame_number: Wrong table. Expected frame numbers starting with 0 or 1"))
-        table[:,0] *= skip
-        table[:,0] += start - 1
+            raise (ValueError("update_frame_number: Wrong table. Expected frame numbers starting with 0 or 1"))
+        table[:, 0] *= skip
+        table[:, 0] += start - 1
         logger.info("update_frame_number: Updated frame numbers successfully")
     return table
 
@@ -217,7 +220,7 @@ def parse_input():
     parser = argparse.ArgumentParser('BFDC')
     subparsers = parser.add_subparsers(dest='command')
 
-    for command in ['trace', 'apply','batch']:
+    for command in ['trace', 'apply', 'batch']:
         subparsers.add_parser(command)
 
     # trace
@@ -230,7 +233,8 @@ def parse_input():
                               help='movie stack file')
     trace_parser.add_argument('-z', '--zstep', type=int, default=100, help='z-step in nm. Default: 100')
     trace_parser.add_argument('-xypx', '--xypixel', type=int, default=110, help='xy pixel size in nm. Default: 110')
-    trace_parser.add_argument('--nframes', type=int, default=None, help='now many frames to analyse from the movie. Default: None')
+    trace_parser.add_argument('--nframes', type=int, default=None,
+                              help='now many frames to analyse from the movie. Default: None')
     trace_parser.add_argument('--driftFileName', type=str, default='BFCC_table',
                               help='filename for the drift table. Default: "BFCC_table.csv"')
     trace_parser.add_argument('--minsignal', type=int, default=100,
@@ -258,8 +262,9 @@ def parse_input():
                               help='how many frames to skip in the beginning of the movie. Default: 0')
 
     apply_parser.add_argument('--smooth', type=int, default=0, help='gaussian smoothing for the drift. Default: 0')
-    apply_parser.add_argument('--maxbg', type=int, default=0, help='reject localizations with high background. Default: 0')
-    apply_parser.add_argument('--zinvert',type=int, default=0, help='invert z axis for drift. Default: 0')
+    apply_parser.add_argument('--maxbg', type=int, default=0,
+                              help='reject localizations with high background. Default: 0')
+    apply_parser.add_argument('--zinvert', type=int, default=0, help='invert z axis for drift. Default: 0')
 
     # batch
     batch_parser = subparsers.add_parser('batch', help='''Batch trace and apply drift 3D to ZOLA table''')
@@ -302,6 +307,6 @@ def parse_input():
                                    In the reconstuction table, background more than this number will be filtered out.
                                    Default: 100
                                    ''')
-    batch_parser.add_argument('--zinvert',type=int, default=0, help='invert z axis for drift. Default: 0')
+    batch_parser.add_argument('--zinvert', type=int, default=0, help='invert z axis for drift. Default: 0')
 
     return parser
