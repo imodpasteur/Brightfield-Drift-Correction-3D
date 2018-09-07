@@ -318,7 +318,6 @@ def main(argsv=None):
     except TypeError:
         logger.error('Wrong args while parsing: ',argsv)
         exit(1)
-    print(args)
     if args.command == 'trace':
         cal_path = iot.get_abs_path(args.dict)
         logger.info(f'Opening calibration {args.dict}')
