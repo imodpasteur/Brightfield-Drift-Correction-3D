@@ -1,6 +1,3 @@
-"""
-
-"""
 import traceback
 import logging
 import numpy as np
@@ -78,10 +75,11 @@ class DriftFitter:
                         continue
                     # out.append(cc_max(cc) limits)
                     try:
-                        x, y, z, good = xcorr.fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20, debug=debug)
+                        x, y, z, good = xcorr.fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20,
+                                                           debug=debug)
 
                     except ValueError:
-                        raise(ValueError('unable to unpack fit_gauss_3d output'))
+                        raise (ValueError('unable to unpack fit_gauss_3d output'))
 
                     except [xcorr.LowXCorr, BadGaussFit]:
                         logging.warning(
@@ -100,7 +98,7 @@ class DriftFitter:
 
                     if not good:
                         logger.warning(f'Bad fit in frame {i+1}')
-                        problems.append(i+1)
+                        problems.append(i + 1)
                     else:
                         z_ = z + self.z_crop[0] - self.zCenter
                         x_ = x + self.x_correction - xc - self.radius_xy
@@ -290,8 +288,8 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
     if bf_frame_num < zola_frame_num:
         logger.info(f'Truncating ZOLA table to {bf_frame_num} frames')
         zola_table = zola_table[zola_table[:, 1] < bf_frame_num]
-        #fnum = int(np.max(zola_table[:, 1]))
-        #print(f'New frame number: {fnum}')
+        # fnum = int(np.max(zola_table[:, 1]))
+        # print(f'New frame number: {fnum}')
 
     frame_nums = np.array(zola_table[:, 1], dtype='int')
     bf_drift_framed = bf_table[frame_nums - 1]
@@ -300,10 +298,10 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
     zola_table_dc[:, [2, 3, 4]] = zola_table_dc[:, [2, 3, 4]] - bf_drift_framed[:, [1, 2, 3]]
     zola_table_dc[:, [11, 12, 13]] = bf_drift_framed[:, [1, 2, 3]]
     if zinvert:
-        zola_table_dc[:,4] = -1 * zola_table_dc[:,4]
+        zola_table_dc[:, 4] = -1 * zola_table_dc[:, 4]
     zola_dc_wo_bf = zola_table_dc
     if maxbg > 0:
-        zola_dc_wo_bf = zola_table_dc[zola_table_dc[:,6] < maxbg]
+        zola_dc_wo_bf = zola_table_dc[zola_table_dc[:, 6] < maxbg]
     return zola_dc_wo_bf, bf_table
 
 
@@ -315,7 +313,7 @@ def main(argsv=None):
         else:
             args = parser.parse_args(argsv)
     except TypeError:
-        logger.error('Wrong args while parsing: ',argsv)
+        logger.error('Wrong args while parsing: ', argsv)
         exit(1)
     if args.command == 'trace':
         cal_path = iot.get_abs_path(args.dict)
@@ -332,7 +330,7 @@ def main(argsv=None):
             lock = iot.put_trace_lock(os.path.dirname(movie_path))
         logger.info(f'Opening movie {args.movie}')
         # movie = io.imread(movie_path)
-        movie, [_] = iot.open_virtual_stack(movie_path)
+        movie = iot.open_virtual_stack(movie_path)
         logger.info(f'Imported movie {movie.shape}')
 
         size_check = iot.check_stacks_size_equals(cal_stack, movie)
@@ -368,14 +366,15 @@ def main(argsv=None):
 
         logger.info(f'Opening localization table')
         zola_table = iot.open_csv_table(zola_path)
-        logger.info(f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
+        logger.info(
+            f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
         bf_table = iot.open_csv_table(bf_path)
 
         if args.smooth > 0:
             logger.info(f'Apply gaussian filter to the drift with sigma = {args.smooth}')
             bf_table[:, 1:4] = iot.gf1(bf_table[:, 1:4],
-                                   sigma=args.smooth,
-                                   axis=0)
+                                       sigma=args.smooth,
+                                       axis=0)
 
         logger.info(f'Applying drift')
         zola_table_dc, bf_table_int = apply_drift(bf_table=bf_table,
@@ -398,5 +397,6 @@ def main(argsv=None):
 
     return 0
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()
