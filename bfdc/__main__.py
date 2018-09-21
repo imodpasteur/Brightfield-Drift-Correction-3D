@@ -1,5 +1,6 @@
 import matplotlib as mpl
-mpl.use('TkAgg')
+# mpl.use('TkAgg')
+mpl.use('PS')
 from bfdc.drift import main
 import logging
 logging.basicConfig(level=logging.INFO)

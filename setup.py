@@ -10,7 +10,8 @@ setup(
         'numpy',
         'scipy',
         'matplotlib<2.2.3',
-        'read-roi'
+        'read-roi',
+        'imreg_dft'
     ],
     url='https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git',
     license='MIT',
