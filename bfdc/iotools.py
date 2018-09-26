@@ -15,12 +15,121 @@ logger = logging.getLogger(__name__)
 
 
 def open_stack(path):
-    return io.imread(path)
+    if path.endswith('ome.tif'):
+        return io.imread(path)
+    elif os.path.isdir(path):
+        stack = TiffStackOpener(path, virtual=False)
+        return stack.get_stack()
+    else:
+        logger.error('Please provide either ome.tif or a folder with .tif files')
+        raise TypeError
 
-
-def open_virtual_stack(path):
+def open_virtual_stack_picasso(path):
     movie, [_] = pio.load_movie(path)
     return movie
+
+
+def open_virtual_stack(path:str):
+    '''
+    Opens virtual stack, returns iterable
+    :param path: string
+    :return: iterable
+    '''
+    if os.path.isdir(path):
+        stack = TiffStackOpener(path,virtual=True)
+        return stack.stack
+    elif path.endswith('ome.tif'):
+        return open_virtual_stack_picasso(path=path)
+    else:
+        logger.error('Please provide either ome.tif or a folder with .tif files')
+        raise TypeError
+
+
+class TiffStackOpener:
+    """
+    Check the content of the folder, reads both ome.tif stacks in virtual or real mode and sets of .tif files.
+    """
+
+    def __init__(self, path, virtual=True):
+        self.path = path
+        self.movie_template = 'img_{:0>9d}_Default_000.tif'
+        self.stack_template = 'img_000000000_Default_{:0>3d}.tif'
+        self.iterator = []
+        self.stack = []
+        if os.path.isdir(path):
+            self.open_tif_set()
+            # self.tif_type_selector()
+        elif path.endswith('ome.tif'):
+            if virtual:
+                self.open_ome_tif_virtual()
+            else:
+                self.open_ome_tif_memory()
+
+    def open_ome_tif_virtual(self):
+        # Launch picasso tiff reader
+        self.iterator = open_virtual_stack_picasso(self.path)
+
+    def open_ome_tif_memory(self):
+        # Use skimage.io.imread
+        self.stack = io.imread(self.path)
+        return self.stack
+
+    def open_tif_set(self):
+        # scan thorugh the folder
+        self.iterator = self.tif_type_selector()
+
+    def tif_movie_opener(self, limit=100000, template='img_{:0>9d}_Default_000.tif'):
+        for i in range(limit):
+            fname = template.format(i)
+            path = os.path.join(self.path, fname)
+            try:
+                f = io.imread(path)
+                yield f
+            except IOError:
+                print(f"file {os.path.join(path,fname)} doesn't exist, break")
+                break
+
+    def tif_zstack_opener(self):
+        return self.tif_movie_opener(template='img_000000000_Default_{:0>3d}.tif')
+
+    def tif_type_selector(self):
+        if os.path.exists(os.path.join(self.path, self.movie_template.format(1))):
+            logger.info('Tif movie detected')
+            return self.tif_movie_opener()
+        elif os.path.exists(os.path.join(self.path, self.stack_template.format(1))):
+            logger.info('Tif stack detected')
+            return self.tif_zstack_opener()
+        else:
+            logging.error(f'''File name pattern not recognized.\n
+                          Tried path: {os.path.join(self.path, self.stack_template.format(0))}''')
+            return -1
+
+    def read_file_list(self):
+        flist = []
+        for i in self.iterator:
+            flist.append(i.name)
+        return sorted(flist)
+
+    def get_stack(self):
+        stack = []
+        try:
+            for i, f in enumerate(self.iterator):
+                stack.append(f)
+                print(f'\rReading {i}-th frame', end='')
+        except KeyboardInterrupt:
+            logging.error('\nUser interrupt...')
+        finally:
+            self.stack = np.array(stack)
+            logging.info(f'\nStack shape {self.stack.shape}')
+        return self.stack
+
+    def nframes(self):
+        # return number of frames
+        pass
+
+    def __getitem__(self):
+        # return n-th item
+        pass
 
 
 def save_drift_table(table: np.ndarray, path):
