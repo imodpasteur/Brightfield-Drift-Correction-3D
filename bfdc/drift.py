@@ -225,15 +225,22 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
     px = [args.xypixel, args.xypixel, args.zstep]
     skip = args.skip
     start = args.start
-    nframes = args.nframes
+    max_frames = args.nframes
     min_signal = args.minsignal
+    movie_path = args.movie
 
     print(f'Pixel size xyz: {px}')
     drift_px = np.zeros((1, 4))
 
     fitter = DriftFitter(cal_stack, roi)
 
-    frame_list = iot.skip_stack(movie.n_frames, start=start, skip=skip, maxframes=nframes)
+    try:
+        n_frames = movie.n_frames
+    except AttributeError:
+        n_frames = iot.virtual_stack_shape(movie_path)
+
+    frame_list = iot.skip_stack(n_frames, start=start, skip=skip, maxframes=max_frames)
+
     try:
         drift_px = fitter.do_trace(movie, frame_list=frame_list, min_signal=min_signal, debug=debug)
     except KeyboardInterrupt as e:
@@ -330,10 +337,13 @@ def main(argsv=None):
             lock = iot.put_trace_lock(os.path.dirname(movie_path))
         logger.info(f'Opening movie {args.movie}')
         # movie = io.imread(movie_path)
-        movie = iot.open_virtual_stack(movie_path)
-        logger.info(f'Imported movie {movie.shape}')
-
-        size_check = iot.check_stacks_size_equals(cal_stack, movie)
+        movie = iot.TiffStackOpener(movie_path)
+        try:
+            logger.info(f'Imported movie {movie.shape}')
+            size_check = iot.check_stacks_size_equals(cal_stack, movie)
+        except AttributeError:
+            logger.info(f'Imported movie from the set of tif files')
+            size_check = True
 
         if size_check:
             logger.info('Stack and movie of equal sizes')

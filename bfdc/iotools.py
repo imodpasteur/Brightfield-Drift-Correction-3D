@@ -37,12 +37,23 @@ def open_virtual_stack(path:str):
     '''
     if os.path.isdir(path):
         stack = TiffStackOpener(path,virtual=True)
-        return stack.stack
+        return stack.picasso_ome
     elif path.endswith('ome.tif'):
         return open_virtual_stack_picasso(path=path)
     else:
         logger.error('Please provide either ome.tif or a folder with .tif files')
         raise TypeError
+
+
+def virtual_stack_shape(folder_path, suffix='.tif'):
+    fff = []
+    flist = os.scandir(folder_path)
+    for f in flist:
+        if f.name.endswith(suffix):
+            fff.append(f)
+    shape = io.imread(fff[-1].path).shape
+    depth = len(fff)
+    return (depth,) + shape
 
 
 class TiffStackOpener:
@@ -54,20 +65,25 @@ class TiffStackOpener:
         self.path = path
         self.movie_template = 'img_{:0>9d}_Default_000.tif'
         self.stack_template = 'img_000000000_Default_{:0>3d}.tif'
-        self.iterator = []
-        self.stack = []
+        self.picasso_ome = None
+        self.stack = None
+        self.tif_set = None
+        self.file_list = []
         if os.path.isdir(path):
             self.open_tif_set()
+            self.get_file_list()
             # self.tif_type_selector()
         elif path.endswith('ome.tif'):
             if virtual:
                 self.open_ome_tif_virtual()
+                self.type = 'ome_virt'
             else:
                 self.open_ome_tif_memory()
+                self.type = 'ome_mem'
 
     def open_ome_tif_virtual(self):
         # Launch picasso tiff reader
-        self.iterator = open_virtual_stack_picasso(self.path)
+        self.picasso_ome = open_virtual_stack_picasso(self.path)
 
     def open_ome_tif_memory(self):
         # Use skimage.io.imread
@@ -76,7 +92,7 @@ class TiffStackOpener:
 
     def open_tif_set(self):
         # scan thorugh the folder
-        self.iterator = self.tif_type_selector()
+        self.tif_set = self.tif_type_selector()
 
     def tif_movie_opener(self, limit=100000, template='img_{:0>9d}_Default_000.tif'):
         for i in range(limit):
@@ -86,7 +102,7 @@ class TiffStackOpener:
                 f = io.imread(path)
                 yield f
             except IOError:
-                print(f"file {os.path.join(path,fname)} doesn't exist, break")
+                print(f"file {os.path.join(path, fname)} doesn't exist, break")
                 break
 
     def tif_zstack_opener(self):
@@ -104,32 +120,83 @@ class TiffStackOpener:
                           Tried path: {os.path.join(self.path, self.stack_template.format(0))}''')
             return -1
 
-    def read_file_list(self):
-        flist = []
-        for i in self.iterator:
-            flist.append(i.name)
-        return sorted(flist)
-
     def get_stack(self):
-        stack = []
-        try:
-            for i, f in enumerate(self.iterator):
-                stack.append(f)
-                print(f'\rReading {i}-th frame', end='')
-        except KeyboardInterrupt:
-            logging.error('\nUser interrupt...')
-        finally:
-            self.stack = np.array(stack)
-            logging.info(f'\nStack shape {self.stack.shape}')
-        return self.stack
+        if self.tif_set:
+            stack = []
+            try:
+                for i, f in enumerate(self.tif_set):
+                    stack.append(f)
+                    print(f'\rReading {i}-th frame', end='')
+            except KeyboardInterrupt:
+                logging.error('\nUser interrupt...')
+            finally:
+                self.stack = np.array(stack)
+                logging.info(f'\nStack shape {self.stack.shape}')
+            return self.stack
+        elif self.picasso_ome:
+            stack = []
+            try:
+                for i, f in enumerate(self.picasso_ome):
+                    stack.append(f)
+                    print(f'\rReading {i}-th frame', end='')
+            except KeyboardInterrupt:
+                logging.error('\nUser interrupt...')
+            finally:
+                self.stack = np.array(stack)
+                logging.info(f'\nStack shape {self.stack.shape}')
+            return self.stack
 
-    def nframes(self):
-        # return number of frames
-        pass
+    def get_file_list(self):
+        for f in os.scandir(self.path):
+            if f.name.endswith('.tif'):
+                self.file_list.append(f.name)
+        self.file_list = sorted(self.file_list)
 
-    def __getitem__(self):
+    @property
+    def n_frames(self):
+        if self.picasso_ome:
+            return self.picasso_ome.n_frames
+
+        elif self.stack:
+            return self.stack.shape[0]
+
+        elif self.tif_set:
+            return len(self.file_list)
+
+        else:
+            logger.error('Stack type not defined')
+            raise AttributeError
+
+    @property
+    def shape(self):
+        if self.picasso_ome:
+            return self.picasso_ome.shape
+
+        elif self.stack:
+            return self.stack.shape
+
+        elif self.tif_set:
+            depth = len(self.file_list)
+            img = io.imread(os.path.join(self.path, self.file_list[0]))
+            shape = img.shape
+            return (depth,) + shape
+
+        else:
+            logger.error('Stack type not defined to invoke the shape')
+            raise AttributeError('Unable to get stack shape as stack is not properly loaded')
+
+    def __getitem__(self, i):
         # return n-th item
-        pass
+        if self.picasso_ome:
+            return self.picasso_ome[i]
+        elif self.stack:
+            return self.stack[i]
+        elif self.tif_set:
+            return io.imread(os.path.join(self.path, self.file_list[i]))
+        else:
+            logger.error('Stack type not defined')
+            raise AttributeError('Unable to get item as stack is not properly loaded')
+
 
 
 def save_drift_table(table: np.ndarray, path):
