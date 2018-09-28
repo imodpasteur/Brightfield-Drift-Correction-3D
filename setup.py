@@ -9,7 +9,7 @@ setup(
         'pillow>5.1',
         'numpy',
         'scipy',
-        'matplotlib<2.2.3',
+        'matplotlib',
         'read-roi',
         'imreg_dft'
     ],
