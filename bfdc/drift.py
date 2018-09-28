@@ -33,7 +33,7 @@ class DriftFitter:
         self.zCenter = len(self.dict) // 2
         self.radius_xy = 3
 
-    def do_trace(self, movie, frame_list, extend_xy=5, min_xcorr=0.5, min_signal=100, debug=False):
+    def do_trace(self, movie, frame_list, extend_xy=5, min_xcorr=0.5, min_signal=100, debug=False, callback=None):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
         # for i,frame in enumerate(movie):
         # crop frame with extended by 5px boundaries
@@ -111,7 +111,9 @@ class DriftFitter:
                     self.update_z_crop(z + self.z_crop[0])
                     self.update_xy_boundaries(x, y, extend_xy)
 
-                print(f'\rProcesed {i + 1}/{total} frames, found {len(out)} BF frames', end=' ')
+                print(f'\rProcessed {i + 1}/{total} frames, found {len(out)} BF frames', end=' ')
+                if callback:
+                    callback({'processed': i + 1, 'total': total, 'found':len(out)})
 
         finally:
             n = len(problems)
@@ -211,7 +213,7 @@ def trace_drift(args, cal_stack, movie, debug=False):
     return drift_nm
 
 
-def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
+def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     """
     Computes 3D drift on the movie vs cal_stack with auto crop
     :param debug: plot data and fit if True
@@ -242,7 +244,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
     frame_list = iot.skip_stack(n_frames, start=start, skip=skip, maxframes=max_frames)
 
     try:
-        drift_px = fitter.do_trace(movie, frame_list=frame_list, min_signal=min_signal, debug=debug)
+        drift_px = fitter.do_trace(movie, frame_list=frame_list, min_signal=min_signal, debug=debug, callback=callback)
     except KeyboardInterrupt as e:
         print(e)
 
@@ -312,7 +314,7 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
     return zola_dc_wo_bf, bf_table
 
 
-def main(argsv=None):
+def main(argsv=None, callback=None):
     parser = iot.parse_input()
     try:
         if argsv is None:
@@ -351,7 +353,8 @@ def main(argsv=None):
                                       cal_stack=cal_stack,
                                       movie=movie,
                                       roi=roi,
-                                      debug=False)
+                                      debug=False,
+                                      callback=callback)
         else:
             logger.info('Stack and movie of different sizes, running on full size')
             drift_ = trace_drift(args, cal_stack, movie)
