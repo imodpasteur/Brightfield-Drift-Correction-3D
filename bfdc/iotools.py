@@ -167,6 +167,13 @@ class TiffStackOpener:
             logger.error('Stack type not defined')
             raise AttributeError
 
+    def __len__(self):
+        return self.n_frames()
+
+    def __iter__(self):
+        for i in self.file_list:
+            yield io.imread(os.path.join(self.path,i))
+
     @property
     def shape(self):
         if self.picasso_ome:
