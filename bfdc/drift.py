@@ -1,17 +1,11 @@
-"""
-TODO: Split track and apply functionality
-TODO: Pass args to main
-TODO: Integrity test
-
-"""
 import traceback
-
-# from scipy.ndimage import gaussian_filter1d as gf1
-
-
-from bfdc.xcorr import *
-from bfdc.feature import *
-from bfdc.iotools import *
+import logging
+import numpy as np
+import os, sys
+import bfdc.batch as batch
+import bfdc.xcorr as xcorr
+import bfdc.feature as ft
+import bfdc.iotools as iot
 
 logger = logging.getLogger(__name__)
 
@@ -31,15 +25,15 @@ class DriftFitter:
     """
 
     def __init__(self, cal_stack, roi):
-        self.boundaries = roi_to_boundaries(roi)
-        self.dict = crop_using_xy_boundaries(cal_stack, boundaries=self.boundaries)
+        self.boundaries = ft.roi_to_boundaries(roi)
+        self.dict = ft.crop_using_xy_boundaries(cal_stack, boundaries=self.boundaries)
         self.z_crop = (0, -1)
         self.x_correction = 0
         self.y_correction = 0
         self.zCenter = len(self.dict) // 2
         self.radius_xy = 3
 
-    def do_trace(self, movie, frame_list, extend_xy=5, min_xcorr=0.8, min_signal=100, debug=False):
+    def do_trace(self, movie, frame_list, extend_xy=5, min_xcorr=0.5, min_signal=100, debug=False, callback=None):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
         # for i,frame in enumerate(movie):
         # crop frame with extended by 5px boundaries
@@ -63,26 +57,48 @@ class DriftFitter:
                 logging.debug(f'frame {i+1}')
                 frame_mean = frame.mean()
                 if frame_mean > min_signal:
-                    crop_frame = crop_using_xy_boundaries(frame, b, extend=extend_xy)
+                    crop_frame = ft.crop_using_xy_boundaries(frame, b, extend=extend_xy)
                     logging.debug(f'Cropping frame {crop_frame.shape}')
                     if min(crop_frame.shape) == 0:
                         raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
                     crop_dict = self.crop_dict()
-                    cc = cc_stack(crop_frame, crop_dict)
+                    cc = xcorr.cc_stack(crop_frame, crop_dict)
                     if cc.max() < min_xcorr:
                         self.z_crop = (0, None)
                         crop_dict = self.crop_dict()
-                        cc = cc_stack(crop_frame, crop_dict)
-                    # out.append(cc_max(cc))
+                        cc = xcorr.cc_stack(crop_frame, crop_dict)
+                        logger.info('Expanding z limits')
+
+                    if cc.max() < min_xcorr:
+                        logger.warning(f'xcorr value is still lower than {min_xcorr}, skipping the frame')
+                        problems.append(i + 1)
+                        continue
+                    # out.append(cc_max(cc) limits)
                     try:
-                        x, y, z, good = fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20, debug=debug)
+                        x, y, z, good = xcorr.fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20,
+                                                           debug=debug)
 
                     except ValueError:
-                        raise(ValueError('unable to unpack fit_gauss_3d output'))
+                        raise (ValueError('unable to unpack fit_gauss_3d output'))
+
+                    except [xcorr.LowXCorr, BadGaussFit]:
+                        logging.warning(
+                            f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
+                        # if len(out):
+                        #    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
+                        problems.append(i + 1)
+
+                    except WrongCrop as e:
+                        logger.error(e)
+
+                    except Exception as e:
+                        print(e)
+                        traceback.print_stack()
+                        problems.append(i + 1)
 
                     if not good:
                         logger.warning(f'Bad fit in frame {i+1}')
-                        problems.append(i+1)
+                        problems.append(i + 1)
                     else:
                         z_ = z + self.z_crop[0] - self.zCenter
                         x_ = x + self.x_correction - xc - self.radius_xy
@@ -95,20 +111,12 @@ class DriftFitter:
                     self.update_z_crop(z + self.z_crop[0])
                     self.update_xy_boundaries(x, y, extend_xy)
 
-                print(f'\rProcesed {i + 1}/{total} frames, found {len(out)} BF frames', end=' ')
+                print(f'\rProcessed {i + 1}/{total} frames, found {len(out)} BF frames', end=' ')
+                sys.stdout.flush()
 
-        except [LowXCorr, BadGaussFit]:
-            logging.warning(f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
-            if len(out):
-                out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
-            problems.append(i + 1)
-
-        except WrongCrop as e:
-            logger.error(e)
-        except Exception as e:
-            print(e)
-            traceback.print_stack()
-            problems.append(i + 1)
+                if callback:
+                    #callback({'processed': i + 1, 'total': total, 'found':len(out)})
+                    callback(dict(processed=i + 1, total=total, found=len(out)))
 
         finally:
             n = len(problems)
@@ -161,9 +169,9 @@ def get_drift_3d(movie, frame_list, cal_stack, debug=False):
     try:
         for i in frame_list:
             frame = movie[i]
-            cc = cc_stack(frame, cal_stack)
+            cc = xcorr.cc_stack(frame, cal_stack)
             # out.append(cc_max(cc))
-            x, y, z, good = fit_gauss_3d(cc, debug=debug)
+            x, y, z, good = xcorr.fit_gauss_3d(cc, debug=debug)
             out.append([i + 1, x, y, -z])
             print('\r{}/{} '.format(i + 1, total), end=' ')
     except Exception as e:
@@ -196,7 +204,7 @@ def trace_drift(args, cal_stack, movie, debug=False):
 
     print(f'Pixel size xyz: {px}')
     drift_px = np.zeros(4)
-    movie, frame_list = skip_stack(movie, start=start, skip=skip, maxframes=nframes)
+    movie, frame_list = iot.skip_stack(movie, start=start, skip=skip, maxframes=nframes)
     try:
         drift_px = get_drift_3d(movie=movie, frame_list=frame_list, cal_stack=cal_stack, debug=debug)
     except KeyboardInterrupt as e:
@@ -204,11 +212,11 @@ def trace_drift(args, cal_stack, movie, debug=False):
 
     drift_nm = drift_px.copy()
     drift_nm[:, 1:] = drift_px[:, 1:] * px
-    drift_nm = update_frame_number(drift_nm, start, skip)
+    drift_nm = iot.update_frame_number(drift_nm, start, skip)
     return drift_nm
 
 
-def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
+def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     """
     Computes 3D drift on the movie vs cal_stack with auto crop
     :param debug: plot data and fit if True
@@ -222,23 +230,30 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False):
     px = [args.xypixel, args.xypixel, args.zstep]
     skip = args.skip
     start = args.start
-    nframes = args.nframes
+    max_frames = args.nframes
     min_signal = args.minsignal
+    movie_path = args.movie
 
     print(f'Pixel size xyz: {px}')
     drift_px = np.zeros((1, 4))
 
     fitter = DriftFitter(cal_stack, roi)
 
-    frame_list = skip_stack(movie.n_frames, start=start, skip=skip, maxframes=nframes)
     try:
-        drift_px = fitter.do_trace(movie, frame_list=frame_list, min_signal=min_signal, debug=debug)
+        n_frames = movie.n_frames
+    except AttributeError:
+        n_frames = iot.virtual_stack_shape(movie_path)
+
+    frame_list = iot.skip_stack(n_frames, start=start, skip=skip, maxframes=max_frames)
+
+    try:
+        drift_px = fitter.do_trace(movie, frame_list=frame_list, min_signal=min_signal, debug=debug, callback=callback)
     except KeyboardInterrupt as e:
         print(e)
 
     drift_nm = drift_px.copy()
     drift_nm[:, 1:] = drift_px[:, 1:] * px
-    drift_nm = update_frame_number(drift_nm, start, skip)
+    drift_nm = iot.update_frame_number(drift_nm, start, skip)
     return drift_nm
 
 
@@ -257,7 +272,7 @@ def move_drift_to_zero(drift_nm, ref_average=10):
     return drift_
 
 
-def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg = 100):
+def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=100, zinvert=0):
     # TODO: save smoothed drift plot with interpolated frame numbers
     # TODO: extrapolate to all frame numbers in the ZOLA table
     """
@@ -271,9 +286,10 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg = 
                 Localiations with bg higher than max_bg will be rejected from the localization table.
     :return: drift corrected zola table, interpolated and smoothed drift table
     """
-    bf_table = interpolate_drift_table(bf_table, start=start, skip=skip, smooth=smooth)
+    bf_table = iot.interpolate_drift_table(bf_table, start=start, skip=skip, smooth=smooth)
 
-    bf_table[:, 3] = -1 * bf_table[:, 3]  # flip z
+    if not zinvert:
+        bf_table[:, 3] = -1 * bf_table[:, 3]  # flip z
 
     zola_frame_num = int(np.max(zola_table[:, 1]))
 
@@ -282,20 +298,121 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg = 
     print(f'Frame number for zola/bf_DC : {zola_frame_num}/{bf_frame_num}')
 
     if bf_frame_num < zola_frame_num:
-        print(f'Truncating ZOLA table to {bf_frame_num} frames')
+        logger.info(f'Truncating ZOLA table to {bf_frame_num} frames')
         zola_table = zola_table[zola_table[:, 1] < bf_frame_num]
-        fnum = int(np.max(zola_table[:, 1]))
-        print(f'New frame number: {fnum}')
+        # fnum = int(np.max(zola_table[:, 1]))
+        # print(f'New frame number: {fnum}')
 
     frame_nums = np.array(zola_table[:, 1], dtype='int')
     bf_drift_framed = bf_table[frame_nums - 1]
 
-
     zola_table_dc = zola_table.copy()
     zola_table_dc[:, [2, 3, 4]] = zola_table_dc[:, [2, 3, 4]] - bf_drift_framed[:, [1, 2, 3]]
     zola_table_dc[:, [11, 12, 13]] = bf_drift_framed[:, [1, 2, 3]]
+    if zinvert:
+        zola_table_dc[:, 4] = -1 * zola_table_dc[:, 4]
     zola_dc_wo_bf = zola_table_dc
     if maxbg > 0:
-        zola_dc_wo_bf = zola_table_dc[zola_table_dc[:,6] < maxbg]
+        zola_dc_wo_bf = zola_table_dc[zola_table_dc[:, 6] < maxbg]
     return zola_dc_wo_bf, bf_table
 
+
+def main(argsv=None, callback=None):
+    parser = iot.parse_input()
+    try:
+        if argsv is None:
+            args = parser.parse_args()
+        else:
+            args = parser.parse_args(argsv)
+    except TypeError:
+        logger.error('Wrong args while parsing: ', argsv)
+        exit(1)
+    if args.command == 'trace':
+        cal_path = iot.get_abs_path(args.dict)
+        logger.info(f'Opening calibration {args.dict}')
+        cal_stack = iot.open_stack(cal_path)
+        logger.info(f'Imported dictionary {cal_stack.shape}')
+
+        roi_path = iot.get_abs_path(args.roi)
+        logger.info(f'Opening roi {args.roi}')
+        roi = ft.read_roi(roi_path)
+
+        movie_path = iot.get_abs_path(args.movie)
+        if args.lock:
+            lock = iot.put_trace_lock(os.path.dirname(movie_path))
+        logger.info(f'Opening movie {args.movie}')
+        # movie = io.imread(movie_path)
+        movie = iot.TiffStackOpener(movie_path)
+        try:
+            logger.info(f'Imported movie {movie.shape}')
+            size_check = iot.check_stacks_size_equals(cal_stack, movie)
+        except AttributeError:
+            logger.info(f'Imported movie from the set of tif files')
+            size_check = True
+
+        if size_check:
+            logger.info('Stack and movie of equal sizes')
+            drift_ = trace_drift_auto(args=args,
+                                      cal_stack=cal_stack,
+                                      movie=movie,
+                                      roi=roi,
+                                      debug=False,
+                                      callback=callback)
+        else:
+            logger.info('Stack and movie of different sizes, running on full size')
+            drift_ = trace_drift(args, cal_stack, movie)
+
+        if drift_.shape[0] > 0:
+            movie_folder = iot.get_parent_path(movie_path)
+            save_path = os.path.join(movie_folder, args.driftFileName)
+            iot.save_drift_table(drift_, save_path)
+            iot.save_drift_plot(move_drift_to_zero(drift_, 10), save_path + "_2zero" + ".png")
+
+            logger.info('Drift table saved, exiting')
+        else:
+            logger.info('Drift table empty, exiting')
+
+        if args.lock:
+            unlock = iot.remove_trace_lock(lock)
+
+    elif args.command == 'apply':
+        logger.debug(args)
+        zola_path = iot.get_abs_path(args.zola_table)
+        bf_path = iot.get_abs_path(args.drift_table)
+
+        logger.info(f'Opening localization table')
+        zola_table = iot.open_csv_table(zola_path)
+        logger.info(
+            f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
+        bf_table = iot.open_csv_table(bf_path)
+
+        if args.smooth > 0:
+            logger.info(f'Apply gaussian filter to the drift with sigma = {args.smooth}')
+            bf_table[:, 1:4] = iot.gf1(bf_table[:, 1:4],
+                                       sigma=args.smooth,
+                                       axis=0)
+
+        logger.info(f'Applying drift')
+        zola_table_dc, bf_table_int = apply_drift(bf_table=bf_table,
+                                                  zola_table=zola_table,
+                                                  smooth=args.smooth,
+                                                  start=args.start,
+                                                  skip=args.skip,
+                                                  maxbg=args.maxbg,
+                                                  zinvert=args.zinvert)
+
+        path = os.path.splitext(zola_path)[0] + f'_BFDC_smooth_{args.smooth}.csv'
+        logger.info(f'saving results to {path}')
+        iot.save_zola_table(zola_table_dc, path)
+        iot.save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png')
+
+    elif args.command == 'batch':
+        batch.BatchDrift(**vars(args))
+    else:
+        parser.print_help()
+
+    return 0
+
+
+if __name__ == "__main__":
+    main()

@@ -10,6 +10,14 @@ Use bright field signal to trace the drift in 3D with nanometer precision.
 
 ## Installation
 
+With conda create a new environment with python 3.6:
+
+`conda create -n pydrift python=3.6`
+
+Then activate it and run installation:
+
+`source activate pydrift`
+
 `pip install git+https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git@dev`
 
 ## Usage
@@ -26,6 +34,33 @@ You'll need to select a contrast region say 32x32 picels from the dict.tif and s
 ### Applying drift to ZOLA table:
 `python -m bfdc apply ZOLA_localization_table.csv BFCC_table.csv --smooth 10`
 
+### Tracing and applying the drift in batch:
+`python -m bfdc batch data_folder `
+
+Expected file structure:
+
+
+* data_folder 
+  * **FOV**1
+    * **dict**_LED_100nm
+      *  dict_LED_100nm_Pos0.**ome.tif**
+      * 32x32.**roi**
+    * **sr**_ast_642_LEDskip9
+      * **sr**_ast_642_LEDskip9.**Pos0.ome.tif**
+      * **sr**_ast_642_LEDskip9.Pos0_1.ome.tif
+      * ZOLA_localization_table.csv
+  * FOV2
+    * ... 
+     
+The possible arguments include:                                              
+* Recursively parsing folders with fields of views (`--fov_prefix=FOV`)
+* Looking for the folder with dictionary stack (`--dict_folder_prefix=dict`)
+* Finding ROI file (`--ROI_suffix=roi`)
+* Opening dictionary stack next to ROI (`--dict_suffix=ome.tif`)
+* Opening STORM movie with bright field frames (`--sr_folder prefix=sr`, `--sr_movie_suffix=Pos0.ome.tif`)
+* Automatically selects brightfield frames with background more than (`--filter_bg=100`)
+
+
 ### Help and possible arguments:
 
 `python -m bfdc -h`
@@ -33,6 +68,8 @@ You'll need to select a contrast region say 32x32 picels from the dict.tif and s
 `python -m bfdc trace -h`
 
 `python -m bfdc apply -h`
+
+`python -m bfdc batch -h`
 
 # Example of use
  
@@ -65,6 +102,12 @@ Fluorescent bead track before and after BFDC.
 ![input](img/bead_track_color.png) -> ![input](img/bead_track_color_BFDC.png) 
 
 # Change log
+
+V0.2.0 Processing tif file sets
+
+V0.1.4 Batch processing 
+
+V0.1.3 Avoid plots ovelaps from diffrent datasets
 
 v0.1.2 Removing localizations from the ZOLA table if they come from bright field. 
 

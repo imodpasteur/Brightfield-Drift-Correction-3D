@@ -1,11 +1,8 @@
 import numpy as np
-
 import matplotlib as mpl
 mpl.use('TkAgg')
 import matplotlib.pyplot as plt
-
 from skimage.feature import match_template
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -57,17 +54,6 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
     cut_stack = stack[z_start:z_stop, y_px - r :y_px + r + 1, x_px - r :x_px + r + 1]
     if debug: print(f'cut_stack shape {cut_stack.shape}')
 
-    #if cut_stack.shape != (z_stop - z_start, 2 * r, 2 * r):
-    #    print('''Wrong shape of cut_stack {}, expected {}
-    #                                                \nPixel maximum detected {}'''
-    #          .format(cut_stack.shape, (2 * rz, 2 * r, 2 * r), (z_px, y_px, x_px)))
-    #    stack[z_start:z_stop, y_px - r + 1:y_px + r + 1, x_px - r + 1:x_px + r + 1] = 0
-    #
-    #    z_px, y_px, x_px = get_abs_max(stack)
-    #    z_start = np.maximum(z_px - rz, 0)
-    #    z_stop = np.minimum(z_px + rz + 1, len(stack) - 1)
-    #    cut_stack = stack[z_start:z_stop, y_px - r + 1:y_px + r + 1, x_px - r + 1:x_px + r + 1]
-    #if debug: print(f'cut_stack shape {cut_stack.shape}')
 
     xy_proj = cut_stack.max(axis=0)
     z_proj = cut_stack.max(axis=(1, 2))
