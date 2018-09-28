@@ -113,7 +113,7 @@ class DriftFitter:
 
                 print(f'\rProcessed {i + 1}/{total} frames, found {len(out)} BF frames', end=' ')
                 sys.stdout.flush()
-                sys.stdout.flush()
+
                 if callback:
                     #callback({'processed': i + 1, 'total': total, 'found':len(out)})
                     callback(dict(processed=i + 1, total=total, found=len(out)))
