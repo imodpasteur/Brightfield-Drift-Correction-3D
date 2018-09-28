@@ -1,7 +1,7 @@
 import traceback
 import logging
 import numpy as np
-import os
+import os, sys
 import bfdc.batch as batch
 import bfdc.xcorr as xcorr
 import bfdc.feature as ft
@@ -112,6 +112,7 @@ class DriftFitter:
                     self.update_xy_boundaries(x, y, extend_xy)
 
                 print(f'\rProcessed {i + 1}/{total} frames, found {len(out)} BF frames', end=' ')
+                sys.stdout.flush()
                 if callback:
                     callback({'processed': i + 1, 'total': total, 'found':len(out)})
 
