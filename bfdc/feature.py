@@ -2,6 +2,9 @@ import numpy as np
 import scipy.ndimage as ndi
 from scipy.ndimage import gaussian_filter as gf
 from skimage import filters
+import matplotlib as mpl
+# mpl.use('TkAgg')
+mpl.use('PS')
 import matplotlib.pyplot as plt
 from bfdc.xcorr import get_abs_max
 from read_roi import read_roi_file

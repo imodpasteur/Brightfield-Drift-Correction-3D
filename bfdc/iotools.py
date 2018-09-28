@@ -2,6 +2,9 @@ import argparse
 
 import numpy as np
 import os
+import matplotlib as mpl
+# mpl.use('TkAgg')
+mpl.use('PS')
 import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy.ndimage import gaussian_filter1d as gf1
