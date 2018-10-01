@@ -2,6 +2,11 @@
 
 Use bright field signal to trace the drift in 3D with nanometer precision.
 
+You can try it with joy using our new platform Imjoy!
+
+Just install the [Python plugin engine](https://github.com/oeway/ImJoy-Python/releases) and
+[Try it!](http://imjoy.io/#/app?w=drift&plugin=https://gist.githubusercontent.com/aaristov/28aa60182ad1eddd7dd9dc088332c194/raw/aa1aa382322b1b980a22572995a538fc52498089/BFDC.imjoy.html)
+
 ## Requirements
 * python 3.6+
 * numpy
