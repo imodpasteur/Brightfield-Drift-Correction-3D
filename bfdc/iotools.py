@@ -105,7 +105,7 @@ class TiffStackOpener:
                 f = io.imread(path)
                 yield f
             except IOError:
-                print(f"file {os.path.join(path, fname)} doesn't exist, break")
+                logger.debug(f"file {os.path.join(path, fname)} doesn't exist, break")
                 break
 
     def tif_zstack_opener(self):
