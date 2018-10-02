@@ -318,6 +318,8 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
 
 
 def main(argsv=None, callback=None):
+    print('<==== Start BFDC Python module ====>')
+    sys.stdout.flush()
     parser = iot.parse_input()
     try:
         if argsv is None:
@@ -328,6 +330,9 @@ def main(argsv=None, callback=None):
         logger.error('Wrong args while parsing: ', argsv)
         exit(1)
     if args.command == 'trace':
+        assert isinstance(args.xypixel, int)
+        assert isinstance(args.zstep, int)
+
         cal_path = iot.get_abs_path(args.dict)
         logger.info(f'Opening calibration {args.dict}')
         cal_stack = iot.open_stack(cal_path)
