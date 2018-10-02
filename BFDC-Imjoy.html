@@ -22,7 +22,7 @@ It will also show the drift plot in the separate window.
   "outputs": null,
   "icon": null,
   "env": "conda create -n imjoy python=3.7",
-  "requirements": [git+https://github.com/imodpasteur/Brightfield-Drift-Correction-3D.git],
+  "requirements": ["git+https://github.com/imodpasteur/Brightfield-Drift-Correction-3D.git"],
   "dependencies": []
 }
 </config>
@@ -38,13 +38,7 @@ import base64
 class PythonPlugin():
   def setup(self):
     print(f'Running BFDC in Python {sys.version}.')
-    
-    #self.root=None
-    #api.setConfig('root',None)
     api.getConfig('root').then(self.config_root)
-    
-    #self.root = '/Volumes/Imod-grenier/Andrey/Phase retrieve/drift-correction/BFDC/data/full_frame/'
-    #self.root = '/Volumes/Imod-grenier/Mickael/yeast_imaging_EdU/20180709-yeastimaging-01micronEDU-9generation/20180709-yeastimaging-01micronEDU-9generation/bigbeads_yeastimaging/vutara_w_bMEA10mM_cot10mM/beadscalibration2/'
     
     if api.TAG == 'ZOLA-scope':
         self.px = 110
@@ -68,7 +62,7 @@ class PythonPlugin():
                     "ui": ["pixel size (nm): {id: 'px', type: 'number', min: 0, placeholder:%d}"%self.px, 
                             "z step (nm): {id: 'zstep', type: 'number', min: 0, placeholder:%d}"%self.zstep,
                             "skip frames : {id: 'skip', type: 'number', min: 0, placeholder:%d}"%self.skip,
-                            "mininal signal for the frame to be treated as brightfield: {id: 'minsig', type: 'number', min: 0, placeholder:%d}"%self.minsig]})
+                            "minimal signal for brightfield: {id: 'minsig', type: 'number', min: 0, placeholder:%d}"%self.minsig]})
     api.register({"name": "apply", 
                     "ui": "smooth (timepoints): {id: 'smooth', type: 'number', min: 0, placeholder:%d}"%self.smooth})
     
@@ -81,12 +75,16 @@ class PythonPlugin():
     print(f'found getConfig.root {root}')
     sys.stdout.flush()
     api.showStatus(f'Found root path: {root}')
-    if root == "null" or not os.path.isdir(root):
+    try:
+        if root == "null" or not os.path.isdir(root):
+            api.showDialog({"name": "Configure start folder",
+                            "ui": "Please type in the path to start with: {id:'path', type:'string', placeholder: '%s'}."%root}).then(self.set_root)
+        else:
+            self.root = root
+            self.show_config(root)
+    except:
         api.showDialog({"name": "Configure start folder",
-                          "ui": "Please type in the path to start with: {id:'path', type:'string', placeholder: '%s'}."%root}).then(self.set_root)
-    else:
-        self.root = root
-        self.show_config(root)
+                            "ui": "Please type in the path to start with: {id:'path', type:'string', placeholder: '%s'}."%root}).then(self.set_root)
 
   def set_root(self,path):
     api.showStatus(f'Selected {path.path} from the dialog')
@@ -100,7 +98,7 @@ class PythonPlugin():
         api.setConfig('root', path)
         self.show_config(None)
     else:
-        api.alert('Suggerted path is wrong, try again')
+        api.alert('Suggested path is wrong, try again')
         self.config_root()
     return
 
@@ -170,4 +168,3 @@ class PythonPlugin():
 
 api.export(PythonPlugin())
 </script>
-
