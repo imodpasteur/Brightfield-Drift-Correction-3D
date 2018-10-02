@@ -1,11 +1,6 @@
+
 <docs lang="markdown">
-You need to install Python Engine first https://github.com/oeway/ImJoy-Python	
-Then create a new plugin and paste this code to it.	
-The plugin will configure Python automatically with all dependencies.	
-Click on the BFDC to run the plugin.	
-You'll see the file dialog to select zstack, roi and movie.	
-Then the plugin will launch Python package to process the files and output the drift table.	
-It will also show the drift plot in the separate window.
+Describe your plugin here.
 </docs>
 
 <config lang="json">
@@ -21,20 +16,24 @@ It will also show the drift plot in the separate window.
   "outputs": null,
   "icon": null,
   "env": "conda create -n imjoy python=3.7",
-  "requirements": ["git+https://github.com/imodpasteur/Brightfield-Drift-Correction-3D.git"],
+  "requirements": [],
   "dependencies": []
 }
 </config>
 
 <script lang="python">
+#"git+https://github.com/imodpasteur/Brightfield-Drift-Correction-3D.git@dev"
 import numpy as np
+#from bfdc import drift
 import sys
 import os
 sys.path.insert(0,'/Volumes/Imod-grenier/Andrey/Phase retrieve/drift-correction/BFDC/')
 from bfdc import drift
 import base64
+
 class PythonPlugin():
   def setup(self):
+    self.root=None
     #self.root = '/Volumes/Imod-grenier/Andrey/Phase retrieve/drift-correction/BFDC/data/full_frame/'
     self.root = '/Volumes/Imod-grenier/Mickael/yeast_imaging_EdU/20180709-yeastimaging-01micronEDU-9generation/20180709-yeastimaging-01micronEDU-9generation/bigbeads_yeastimaging/vutara_w_bMEA10mM_cot10mM/beadscalibration2/'
     print(f'Running BFDC in Python {sys.version}. \nRoot directory: {self.root}')
@@ -57,11 +56,14 @@ class PythonPlugin():
         self.zstep = None
         raise AttributeError('Unsupported TAG')
     self.smooth = 0
+    self.skip = 0
     api.register({"name": "trace", 
                     "ui": ["pixel size (nm): {id: 'px', type: 'number', min: 0, placeholder:%d}"%self.px, 
                             "z step (nm): {id: 'zstep', type: 'number', min: 0, placeholder:%d}"%self.zstep,
+                            "skip frames : {id: 'skip', type: 'number', min: 0, placeholder:%d}"%self.skip,
                             "mininal signal for the frame to be treated as brightfield: {id: 'minsig', type: 'number', min: 0, placeholder:%d}"%self.minsig]})
-    api.register({"name": "apply", "ui": "smooth (timepoints): {id: 'smooth', type: 'number', min: 0, placeholder:%d}"%self.smooth})
+    api.register({"name": "apply", 
+                    "ui": "smooth (timepoints): {id: 'smooth', type: 'number', min: 0, placeholder:%d}"%self.smooth})
     
     
   def open_z_stack(self, path):
@@ -70,22 +72,27 @@ class PythonPlugin():
     new_path = os.path.dirname(path)
     api.showFileDialog(title='Select ROI', root=new_path).then(self.open_ROI)
     
+
   def open_ROI(self, path):
     self.ROI_path = path
     new_path = os.path.dirname(path)
     api.showFileDialog(title='Select movie', root=new_path).then(self.open_movie)
     #print(f'Showing file dialog {new_path}')
+
   def open_movie(self, path):
     self.movie_path = path
     self.analyse_drift()
+
   def analyse_drift(self):
-    print(self.z_stack_path)
-    print(self.ROI_path)
-    print(self.movie_path)
-    sys.stdout.flush()
-    print(f'Current TAG is: {api.TAG}')
-    sys.stdout.flush()
-    args = ["trace", self.z_stack_path, self.ROI_path, self.movie_path, f"--xypixel={self.px}", f"--zstep={self.zstep}", f"--minsignal={self.minsig}"]
+    args = ["trace", 
+            self.z_stack_path, 
+            self.ROI_path, 
+            self.movie_path, 
+            f"--xypixel={self.px}", 
+            f"--zstep={self.zstep}", 
+            f"--minsignal={self.minsig}",
+            f"--skip={self.skip}"]
+    
     print(f'Args list: {args}')
     sys.stdout.flush()
     drift.main(argsv=args, callback=self.show_progress)
@@ -97,25 +104,29 @@ class PythonPlugin():
         result = base64.b64encode(data).decode('ascii')
         imgurl = 'data:image/png;base64,' + result
         api.createWindow(name='Drift prediction', type = 'imjoy/image', w=5, h=5, data= {"src": imgurl})
+
+
   def run(self, my):
     print('<===== Start BFDC =====>')
+
     def trace(config):
         self.px = config.px
         self.zstep = config.zstep
-        
-        print(f'Pixel size {self.px}')
-        print(f'Z step {self.zstep}')
-        sys.stdout.flush()
+        self.skip = config.skip
         api.showFileDialog(title='Select z stack', root=self.root).then(self.open_z_stack)
+
     if my.config.type not in ['trace', 'apply']:
         api.alert("BFDC is a set of tools for tracing, applying and batch processing the drift from the bright field. Please, select your operation type from drop-down menu and check the parameters")
     else:
         trace(my.config)
+
   def show_progress(self, msg):
     assert isinstance(msg,dict)
     current, total, found = msg.values()
     if current%1 == 0:
         api.showStatus(f'Processing {current}/{total}, found {found} BF frames')
         api.showProgress(int(current / total * 100))
+
 api.export(PythonPlugin())
 </script>
+
