@@ -1,29 +1,29 @@
-# Bright Field Drift Correction
+# Bright Field Drift Correction (BFDC)
 
 Use bright field signal to trace the drift in 3D with nanometer precision.
 
 You can try it with joy using our new platform Imjoy!
 
 Just install the [Python plugin engine](https://github.com/oeway/ImJoy-Python/releases) and
-[Try it!](http://imjoy.io/#/app?w=drift&plugin=https://gist.githubusercontent.com/aaristov/28aa60182ad1eddd7dd9dc088332c194/raw/aa1aa382322b1b980a22572995a538fc52498089/BFDC.imjoy.html)
+[Click this link](http://imjoy.io/#/app?w=drift&plugin=https://raw.githubusercontent.com/imodpasteur/Brightfield-Drift-Correction-3D/master/BFDC-Imjoy.html) to jump to the installation step of the script. Otherwise, click Add Plugin in Imjoy and paste [This link](https://raw.githubusercontent.com/imodpasteur/Brightfield-Drift-Correction-3D/master/BFDC-Imjoy.html) to the plugin installation URL line. Plugin will be installed autimatically with all necessary dependencies.
 
 ## Requirements
 * python 3.6+
-* numpy
-* scipy
-* scikit-image
+* All dependencies are automatically pulled during installation of BFDC
 
 ## Installation
 
-With conda create a new environment with python 3.6:
+We recommend using Conda virtual environment to run BFDC. Install [Miniconda](https://conda.io/miniconda.html) and type the following instructions in Anaconda promt (Windows) or Terminal (Unix / MacOS)
 
-`conda create -n pydrift python=3.6`
+With Conda create a new environment with python 3.7:
+
+`conda create -n pydrift python=3.7 -y`
 
 Then activate it and run installation:
 
-`source activate pydrift`
+`source activate pydrift` (Unix / MacOS) `activate pydrift` (Windows) 
 
-`pip install git+https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git@dev`
+`pip install git+https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git`
 
 ## Usage
 
