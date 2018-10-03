@@ -4,7 +4,7 @@ Use bright field signal to trace the drift in 3D with nanometer precision.
 
 You can try it with joy using our new platform Imjoy!
 
-Just install the [Python plugin engine](https://github.com/oeway/ImJoy-Python/releases) and
+Just install the [Imjoy plugin engine](https://github.com/oeway/ImJoy-Python/releases) and
 [Click this link](http://imjoy.io/#/app?w=drift&plugin=https://raw.githubusercontent.com/imodpasteur/Brightfield-Drift-Correction-3D/master/BFDC-Imjoy.html) to jump to the installation step of the script. Otherwise, click Add Plugin in Imjoy and paste [This link](https://raw.githubusercontent.com/imodpasteur/Brightfield-Drift-Correction-3D/master/BFDC-Imjoy.html) to the plugin installation URL line. Plugin will be installed autimatically with all necessary dependencies.
 
 ## Requirements
