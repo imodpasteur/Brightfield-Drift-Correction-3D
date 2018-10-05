@@ -361,6 +361,8 @@ def skip_stack(n_frames: int, start: int, skip: int, maxframes: int):
         start = start - 1
     if skip == 0:
         skip = None
+    if maxframes == 0:
+        maxframes = None
     index_list = index_list[start:maxframes:skip]
     logger.info(f'skip_stack: returning frame list with {len(index_list)} frames')
     return index_list

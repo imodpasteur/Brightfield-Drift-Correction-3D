@@ -53,7 +53,7 @@ class TestSkip_stack(TestCase):
         print(f'input shape {input}')
         start = 0
         skip = 0
-        nframes = None
+        nframes = 0
         index_list = skip_stack(n_frames=len(stack), start=start, skip=skip, maxframes=nframes)
         self.assertListEqual(expected_index_list,list(index_list),msg=f"test_skip_stack_default: {input}, {len(index_list)}")
 
