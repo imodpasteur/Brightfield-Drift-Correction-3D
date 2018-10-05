@@ -359,7 +359,7 @@ def skip_stack(n_frames: int, start: int, skip: int, maxframes: int):
     index_list = np.arange(n_frames)
     if start > 0:
         start = start - 1
-    index_list = index_list[start:maxframes:skip + 1]
+    index_list = index_list[start:maxframes:skip]
     logger.info(f'skip_stack: returning frame list with {len(index_list)} frames')
     return index_list
 
