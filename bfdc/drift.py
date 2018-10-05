@@ -106,16 +106,16 @@ class DriftFitter:
                     logger.debug(f"x_px = {x}, y_px = {y}, \
                                                 x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
-                    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
+                    out = np.append(out, np.array([f + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
                     logging.debug(f'found xyz {x,y,z}')
                     self.update_z_crop(z + self.z_crop[0])
                     self.update_xy_boundaries(x, y, extend_xy)
 
-                print(f'\rProcessed {f}/{total} frames, found {len(out)} BF frames', end=' ')
+                print(f'\rProcessed {f+1}/{total} frames, found {len(out)} BF frames', end=' ')
                 sys.stdout.flush()
 
                 if callback and i%10 == 0:
-                    callback({"Progress": {"processed" : f,
+                    callback({"Progress": {"processed" : f+1,
                                            "total" : total,
                                            "found" : len(out)}
                               })
