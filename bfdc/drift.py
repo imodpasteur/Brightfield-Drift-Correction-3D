@@ -204,6 +204,8 @@ def trace_drift(args, cal_stack, movie, debug=False):
     skip = args.skip
     start = args.start
     nframes = args.nframes
+    if nframes == 0:
+        nframes = None
 
     print(f'Pixel size xyz: {px}')
     drift_px = np.zeros(4)
