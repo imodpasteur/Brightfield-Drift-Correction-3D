@@ -115,7 +115,10 @@ class DriftFitter:
                 sys.stdout.flush()
 
                 if callback and i%10 == 0:
-                    callback(dict(processed=i + 1, total=total, found=len(out)))
+                    callback({"Progress": {"processed" : i + 1,
+                                           "total" : total,
+                                           "found" : len(out)}
+                              })
 
         finally:
             n = len(problems)
@@ -226,6 +229,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     :return: table[frame,x,y,z] in nm
     """
     print("Tracing drift using ROI")
+    if callback: callback({"Message": "Tracing drift using ROI"})
     px = [args.xypixel, args.xypixel, args.zstep]
     skip = args.skip
     start = args.start
@@ -334,21 +338,26 @@ def main(argsv=None, callback=None):
 
         cal_path = iot.get_abs_path(args.dict)
         logger.info(f'Opening calibration {args.dict}')
+        if callback: callback({'Message':f'Opening calibration {args.dict}'})
         cal_stack = iot.open_stack(cal_path)
         logger.info(f'Imported dictionary {cal_stack.shape}')
+        if callback: callback({'Message':f'Imported dictionary {cal_stack.shape}'})
 
         roi_path = iot.get_abs_path(args.roi)
         logger.info(f'Opening roi {args.roi}')
+        if callback: callback({'Message':f'Opening roi {args.roi}'})
         roi = ft.read_roi(roi_path)
 
         movie_path = iot.get_abs_path(args.movie)
         if args.lock:
             lock = iot.put_trace_lock(os.path.dirname(movie_path))
         logger.info(f'Opening movie {args.movie}')
+        if callback: callback({'Message':f'Opening movie {args.movie}'})
         # movie = io.imread(movie_path)
         movie = iot.TiffStackOpener(movie_path)
         try:
             logger.info(f'Imported movie {movie.shape}')
+            if callback: callback({'Message':f'Imported movie {movie.shape}'})
             size_check = iot.check_stacks_size_equals(cal_stack, movie)
         except AttributeError:
             logger.info(f'Imported movie from the set of tif files')
