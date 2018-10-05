@@ -265,10 +265,11 @@ def plot_drift(table):
     plt.grid()
 
 
-def save_drift_plot(table, path):
+def save_drift_plot(table, path, callback=None):
     plot_drift(table)
     plt.savefig(path)
     plt.close()
+    if callback: callback({"Plot":path})
     logger.info(f"Saved drift plot to {path}")
 
 
