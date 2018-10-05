@@ -46,14 +46,14 @@ class TestSkip_stack(TestCase):
     def test_skip_stack_default(self):
 
         #stack = np.zeros((100,15,15))
-        stack,[info] = pio.load_movie('../data/full_frame/sr_642_redLED_start_10_skip_10_SP_100nm_1_MMStack_Pos0.ome-100f.tif')
+        stack,[info] = pio.load_movie('../data/full_frame/sr_642_redLED_start_10_skip_10_SP_100nm_1_MMStack_Pos0-100f.ome.tif')
         input = stack.shape
         n_frames = stack.n_frames
         expected_index_list = list(np.arange(n_frames))
         print(f'input shape {input}')
         start = 0
         skip = 0
-        nframes = None
+        nframes = 0
         index_list = skip_stack(n_frames=len(stack), start=start, skip=skip, maxframes=nframes)
         self.assertListEqual(expected_index_list,list(index_list),msg=f"test_skip_stack_default: {input}, {len(index_list)}")
 
@@ -61,10 +61,10 @@ class TestSkip_stack(TestCase):
         stack, [info] = pio.load_movie('../data/crop_frame/sr_2_LED_movie.tif')
         input = stack.shape
         start = 10
-        skip = 9
+        skip = 10
         nframes = None
         n_frames = stack.n_frames
-        expected_index_list = list(np.arange(start-1,n_frames,skip+1))
+        expected_index_list = list(np.arange(start-1,n_frames,skip))
         print(f'input shape {input}')
         index_list = skip_stack(n_frames=len(stack), start=start, skip=skip, maxframes=nframes)
         self.assertListEqual(expected_index_list, list(index_list),

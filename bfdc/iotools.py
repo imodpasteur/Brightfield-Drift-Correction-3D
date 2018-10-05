@@ -105,7 +105,7 @@ class TiffStackOpener:
                 f = io.imread(path)
                 yield f
             except IOError:
-                print(f"file {os.path.join(path, fname)} doesn't exist, break")
+                logger.debug(f"file {os.path.join(path, fname)} doesn't exist, break")
                 break
 
     def tif_zstack_opener(self):
@@ -265,10 +265,11 @@ def plot_drift(table):
     plt.grid()
 
 
-def save_drift_plot(table, path):
+def save_drift_plot(table, path, callback=None):
     plot_drift(table)
     plt.savefig(path)
     plt.close()
+    if callback: callback({"Plot":path})
     logger.info(f"Saved drift plot to {path}")
 
 
@@ -358,7 +359,11 @@ def skip_stack(n_frames: int, start: int, skip: int, maxframes: int):
     index_list = np.arange(n_frames)
     if start > 0:
         start = start - 1
-    index_list = index_list[start:maxframes:skip + 1]
+    if skip == 0:
+        skip = None
+    if maxframes == 0:
+        maxframes = None
+    index_list = index_list[start:maxframes:skip]
     logger.info(f'skip_stack: returning frame list with {len(index_list)} frames')
     return index_list
 

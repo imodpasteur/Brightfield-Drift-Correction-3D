@@ -47,7 +47,7 @@ class DriftFitter:
         yc = np.mean([b["ymax"], -b["ymin"]])
         out = np.empty((0, 4))
         x_, y_, z_ = 0, 0, 0
-        total = len(frame_list)
+        total = max(frame_list)
         problems = []
         i = 0
 
@@ -106,21 +106,24 @@ class DriftFitter:
                     logger.debug(f"x_px = {x}, y_px = {y}, \
                                                 x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
-                    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
+                    out = np.append(out, np.array([f + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
                     logging.debug(f'found xyz {x,y,z}')
                     self.update_z_crop(z + self.z_crop[0])
                     self.update_xy_boundaries(x, y, extend_xy)
 
-                print(f'\rProcessed {i + 1}/{total} frames, found {len(out)} BF frames', end=' ')
+                print(f'\rProcessed {f+1}/{total} frames, found {len(out)} BF frames', end=' ')
                 sys.stdout.flush()
 
-                if callback:
-                    #callback({'processed': i + 1, 'total': total, 'found':len(out)})
-                    callback(dict(processed=i + 1, total=total, found=len(out)))
+                if callback and i%10 == 0:
+                    callback({"Progress": {"processed" : f+1,
+                                           "total" : total,
+                                           "found" : len(out)}
+                              })
 
         finally:
             n = len(problems)
             print(f'\nDone tracing with {n} problem frames')
+            if callback: callback({'Message': f'Done tracing with {n} problem frames'})
             if n:
                 print(problems)
 
@@ -201,6 +204,8 @@ def trace_drift(args, cal_stack, movie, debug=False):
     skip = args.skip
     start = args.start
     nframes = args.nframes
+    if nframes == 0:
+        nframes = None
 
     print(f'Pixel size xyz: {px}')
     drift_px = np.zeros(4)
@@ -212,6 +217,7 @@ def trace_drift(args, cal_stack, movie, debug=False):
 
     drift_nm = drift_px.copy()
     drift_nm[:, 1:] = drift_px[:, 1:] * px
+    drift_nm[:, 3] = - drift_px[:, 3]
     drift_nm = iot.update_frame_number(drift_nm, start, skip)
     return drift_nm
 
@@ -227,6 +233,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     :return: table[frame,x,y,z] in nm
     """
     print("Tracing drift using ROI")
+    if callback: callback({"Message": "Tracing drift using ROI"})
     px = [args.xypixel, args.xypixel, args.zstep]
     skip = args.skip
     start = args.start
@@ -253,7 +260,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
 
     drift_nm = drift_px.copy()
     drift_nm[:, 1:] = drift_px[:, 1:] * px
-    drift_nm = iot.update_frame_number(drift_nm, start, skip)
+    #drift_nm = iot.update_frame_number(drift_nm, start, skip)
     return drift_nm
 
 
@@ -288,7 +295,7 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
     """
     bf_table = iot.interpolate_drift_table(bf_table, start=start, skip=skip, smooth=smooth)
 
-    if not zinvert:
+    if zinvert:
         bf_table[:, 3] = -1 * bf_table[:, 3]  # flip z
 
     zola_frame_num = int(np.max(zola_table[:, 1]))
@@ -335,21 +342,26 @@ def main(argsv=None, callback=None):
 
         cal_path = iot.get_abs_path(args.dict)
         logger.info(f'Opening calibration {args.dict}')
+        if callback: callback({'Message':f'Opening calibration {args.dict}'})
         cal_stack = iot.open_stack(cal_path)
         logger.info(f'Imported dictionary {cal_stack.shape}')
+        if callback: callback({'Message':f'Imported dictionary {cal_stack.shape}'})
 
         roi_path = iot.get_abs_path(args.roi)
         logger.info(f'Opening roi {args.roi}')
+        if callback: callback({'Message':f'Opening roi {args.roi}'})
         roi = ft.read_roi(roi_path)
 
         movie_path = iot.get_abs_path(args.movie)
         if args.lock:
             lock = iot.put_trace_lock(os.path.dirname(movie_path))
         logger.info(f'Opening movie {args.movie}')
+        if callback: callback({'Message':f'Opening movie {args.movie}'})
         # movie = io.imread(movie_path)
         movie = iot.TiffStackOpener(movie_path)
         try:
             logger.info(f'Imported movie {movie.shape}')
+            if callback: callback({'Message':f'Imported movie {movie.shape}'})
             size_check = iot.check_stacks_size_equals(cal_stack, movie)
         except AttributeError:
             logger.info(f'Imported movie from the set of tif files')
@@ -371,7 +383,7 @@ def main(argsv=None, callback=None):
             movie_folder = iot.get_parent_path(movie_path)
             save_path = os.path.join(movie_folder, args.driftFileName)
             iot.save_drift_table(drift_, save_path)
-            iot.save_drift_plot(move_drift_to_zero(drift_, 10), save_path + "_2zero" + ".png")
+            iot.save_drift_plot(move_drift_to_zero(drift_, 10), save_path + "_2zero" + ".png",callback=callback)
 
             logger.info('Drift table saved, exiting')
         else:
@@ -386,18 +398,24 @@ def main(argsv=None, callback=None):
         bf_path = iot.get_abs_path(args.drift_table)
 
         logger.info(f'Opening localization table')
+        if callback: callback({'Message': f'Opening localization table'})
         zola_table = iot.open_csv_table(zola_path)
-        logger.info(
-            f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
+        logger.info(f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
+
+        if callback: callback({'Message': f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames'})
         bf_table = iot.open_csv_table(bf_path)
 
         if args.smooth > 0:
             logger.info(f'Apply gaussian filter to the drift with sigma = {args.smooth}')
+            if callback: callback({'Message': f'Apply gaussian filter to the drift with sigma = {args.smooth}'})
+
             bf_table[:, 1:4] = iot.gf1(bf_table[:, 1:4],
                                        sigma=args.smooth,
                                        axis=0)
 
         logger.info(f'Applying drift')
+        if callback: callback({'Message': f'Applying drift'})
+
         zola_table_dc, bf_table_int = apply_drift(bf_table=bf_table,
                                                   zola_table=zola_table,
                                                   smooth=args.smooth,
@@ -408,8 +426,9 @@ def main(argsv=None, callback=None):
 
         path = os.path.splitext(zola_path)[0] + f'_BFDC_smooth_{args.smooth}.csv'
         logger.info(f'saving results to {path}')
+        if callback: callback({'Message': f'saving results to {path}'})
         iot.save_zola_table(zola_table_dc, path)
-        iot.save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png')
+        iot.save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png', callback=callback)
 
     elif args.command == 'batch':
         batch.BatchDrift(**vars(args))
