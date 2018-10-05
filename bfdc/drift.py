@@ -47,7 +47,7 @@ class DriftFitter:
         yc = np.mean([b["ymax"], -b["ymin"]])
         out = np.empty((0, 4))
         x_, y_, z_ = 0, 0, 0
-        total = len(frame_list)
+        total = max(frame_list)
         problems = []
         i = 0
 
@@ -111,11 +111,11 @@ class DriftFitter:
                     self.update_z_crop(z + self.z_crop[0])
                     self.update_xy_boundaries(x, y, extend_xy)
 
-                print(f'\rProcessed {i + 1}/{total} frames, found {len(out)} BF frames', end=' ')
+                print(f'\rProcessed {f}/{total} frames, found {len(out)} BF frames', end=' ')
                 sys.stdout.flush()
 
                 if callback and i%10 == 0:
-                    callback({"Progress": {"processed" : i + 1,
+                    callback({"Progress": {"processed" : f,
                                            "total" : total,
                                            "found" : len(out)}
                               })
@@ -123,6 +123,7 @@ class DriftFitter:
         finally:
             n = len(problems)
             print(f'\nDone tracing with {n} problem frames')
+            if callback: callback({'Message': f'Done tracing with {n} problem frames'})
             if n:
                 print(problems)
 
@@ -256,7 +257,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
 
     drift_nm = drift_px.copy()
     drift_nm[:, 1:] = drift_px[:, 1:] * px
-    drift_nm = iot.update_frame_number(drift_nm, start, skip)
+    #drift_nm = iot.update_frame_number(drift_nm, start, skip)
     return drift_nm
 
 
@@ -379,7 +380,7 @@ def main(argsv=None, callback=None):
             movie_folder = iot.get_parent_path(movie_path)
             save_path = os.path.join(movie_folder, args.driftFileName)
             iot.save_drift_table(drift_, save_path)
-            iot.save_drift_plot(move_drift_to_zero(drift_, 10), save_path + "_2zero" + ".png")
+            iot.save_drift_plot(move_drift_to_zero(drift_, 10), save_path + "_2zero" + ".png",callback=callback)
 
             logger.info('Drift table saved, exiting')
         else:
@@ -394,18 +395,24 @@ def main(argsv=None, callback=None):
         bf_path = iot.get_abs_path(args.drift_table)
 
         logger.info(f'Opening localization table')
+        if callback: callback({'Message': f'Opening localization table'})
         zola_table = iot.open_csv_table(zola_path)
-        logger.info(
-            f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
+        logger.info(f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
+
+        if callback: callback({'Message': f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames'})
         bf_table = iot.open_csv_table(bf_path)
 
         if args.smooth > 0:
             logger.info(f'Apply gaussian filter to the drift with sigma = {args.smooth}')
+            if callback: callback({'Message': f'Apply gaussian filter to the drift with sigma = {args.smooth}'})
+
             bf_table[:, 1:4] = iot.gf1(bf_table[:, 1:4],
                                        sigma=args.smooth,
                                        axis=0)
 
         logger.info(f'Applying drift')
+        if callback: callback({'Message': f'Applying drift'})
+
         zola_table_dc, bf_table_int = apply_drift(bf_table=bf_table,
                                                   zola_table=zola_table,
                                                   smooth=args.smooth,
@@ -416,8 +423,9 @@ def main(argsv=None, callback=None):
 
         path = os.path.splitext(zola_path)[0] + f'_BFDC_smooth_{args.smooth}.csv'
         logger.info(f'saving results to {path}')
+        if callback: callback({'Message': f'saving results to {path}'})
         iot.save_zola_table(zola_table_dc, path)
-        iot.save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png')
+        iot.save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png', callback=callback)
 
     elif args.command == 'batch':
         batch.BatchDrift(**vars(args))
