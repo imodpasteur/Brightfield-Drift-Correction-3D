@@ -217,6 +217,7 @@ def trace_drift(args, cal_stack, movie, debug=False):
 
     drift_nm = drift_px.copy()
     drift_nm[:, 1:] = drift_px[:, 1:] * px
+    drift_nm[:, 3] = - drift_px[:, 3]
     drift_nm = iot.update_frame_number(drift_nm, start, skip)
     return drift_nm
 
@@ -294,7 +295,7 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
     """
     bf_table = iot.interpolate_drift_table(bf_table, start=start, skip=skip, smooth=smooth)
 
-    if not zinvert:
+    if zinvert:
         bf_table[:, 3] = -1 * bf_table[:, 3]  # flip z
 
     zola_frame_num = int(np.max(zola_table[:, 1]))
