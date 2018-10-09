@@ -317,9 +317,11 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
     zola_table_dc[:, [2, 3, 4]] = zola_table_dc[:, [2, 3, 4]] - bf_drift_framed[:, [1, 2, 3]]
     zola_table_dc[:, [11, 12, 13]] = bf_drift_framed[:, [1, 2, 3]]
     if zinvert:
+        print('Invert z')
         zola_table_dc[:, 4] = -1 * zola_table_dc[:, 4]
     zola_dc_wo_bf = zola_table_dc
     if maxbg > 0:
+        print(f'Filter background < {minbg}')
         zola_dc_wo_bf = zola_table_dc[zola_table_dc[:, 6] < maxbg]
     return zola_dc_wo_bf, bf_table
 
