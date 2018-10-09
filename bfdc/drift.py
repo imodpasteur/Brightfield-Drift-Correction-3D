@@ -431,7 +431,7 @@ def main(argsv=None, callback=None):
         iot.save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png', callback=callback)
 
     elif args.command == 'batch':
-        batch.BatchDrift(**vars(args))
+        batch.BatchDrift(callback=callback,**vars(args))
     else:
         parser.print_help()
 
