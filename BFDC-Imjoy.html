@@ -22,17 +22,18 @@ It will also show the drift plot in the separate window.
   "outputs": null,
   "icon": null,
   "env": "conda create -n imjoy python=3.7",
-  "requirements": ["git+https://github.com/imodpasteur/Brightfield-Drift-Correction-3D.git@dev"],
+  "requirements": [],
   "dependencies": []
 }
 </config>
 
 <script lang="python">
-
+#"git+https://github.com/imodpasteur/Brightfield-Drift-Correction-3D.git@dev"
 import numpy as np
+#from bfdc import drift
 import sys
 import os
-#sys.path.insert(0,'/Volumes/Imod-grenier/Andrey/Phase retrieve/drift-correction/BFDC/')
+sys.path.insert(0,'/Volumes/Imod-grenier/Andrey/Phase retrieve/drift-correction/BFDC/')
 from bfdc import drift
 import base64
 import asyncio
@@ -49,7 +50,8 @@ class PythonPlugin():
     #api.getConfig('root').then(self.config_root).catch(print)
     
     self.config = {"trace":{'xypixel':100, 
-                            'zstep':100, 
+                            'zstep':100,
+                            'zdirection':['approach','retract'], 
                             'start':0, 
                             'nframes':0, 
                             'skip':0,
@@ -58,13 +60,26 @@ class PythonPlugin():
                                      'roi',
                                      'movie']},
                    "apply":{'smooth':0,
+                            'zinvert':[0,1],
+                            'maxbg':0,
                             'paths':['zola_table',
                                      'drift_table']},
-                   "batch":{}
+                   "batch":{'fov_prefix': 'FOV',
+                            'dict_folder_prefix': 'dict',
+                            'dict_suffix': 'ome.tif',
+                            'sr_folder_prefix': 'sr_',
+                            'sr_movie_suffix': 'Pos0.ome.tif',
+                            'zola_dc_filename':'ZOLA*BFDC*.csv',
+                            'dc_table_filename': 'BFCC*.csv',
+                            'zola_raw_filename': 'ZOLA_localization_table.csv',
+                            'smooth': 50,
+                            'filter_bg': 0,
+                            'zinvert': 0,
+                            'paths': ['batch_path']}
                    }
     
     self.revoke_config(await api.getConfig('bfdc'))
-    self.print_config()
+    #self.print_config()
     self.plot_menus()
 
 
@@ -73,14 +88,36 @@ class PythonPlugin():
         name = self.config[action]
         ui = []
         for param in self.config[action]:
-            if isinstance(self.config[action][param],int):
-                line = {param: {"id": param, 
-                              "type": "number", 
-                               "min": 0, 
-                               "placeholder":self.config[action][param]}
-                }
-                #print(str(line))
-                ui.append(line)
+            value = self.config[action][param]
+            #print(f'{param}:{value}({type(value)})')
+               
+            if param is not 'paths':
+                if isinstance(value,int):
+                    line = {param: {"id": param, 
+                                "type": "number", 
+                                "min": 0, 
+                                "placeholder":value}
+                            }
+                    #print(str(line))
+                    ui.append(line)
+                elif isinstance(value,str):
+                    line = {param: {"id": param, 
+                                "type": "string", 
+                                "placeholder":value}
+                            }
+                    #print(str(line))
+                    ui.append(line)
+                elif isinstance(value,list):
+                    line = {param: {"id": param, 
+                                "type": "choose",
+                                "options": value, 
+                                "placeholder": value[0]}
+                            }
+                    #print(str(line))
+                    ui.append(line)
+                else:
+                    raise('unknown entry, expected str, list or int')
+
         #print(ui)
         api.register({"name" : action,
                          "ui": ui})
@@ -105,7 +142,7 @@ class PythonPlugin():
         args = []
         args += [action]
         args += paths
-        args += ['--%s=%d'%(key,value) for key,value in zip(arg_dict.keys(),arg_dict.values())]
+        args += [f'--{key}={value}' for key,value in zip(arg_dict.keys(),arg_dict.values())]
         print(args)
         drift.main(argsv=args, callback=self.show_progress)
     else:
@@ -115,8 +152,8 @@ class PythonPlugin():
     print('updating config')
     self.config[action].update(new_dict)
     self.dump_config()
-    print('New config: ')
-    print(json.dumps(self.config, indent=4))
+    #print('New config: ')
+    #print(json.dumps(self.config, indent=4))
   
   async def get_paths(self, title_list):
     if isinstance(title_list, list) or isinstance(title_list, tuple):
@@ -171,7 +208,7 @@ class PythonPlugin():
     api.setConfig('root', root)
   
   def revoke_config(self, conf):
-    print(f'Loaded {conf} from Imjoy bfdc key')
+    print('Loaded conf from Imjoy bfdc key')
     if conf:
         print('Trying to serialize with json')
         config = json.loads(conf)
@@ -183,7 +220,12 @@ class PythonPlugin():
         print('Keys are the same')
         print('Updating current configuration from Imjoy')
         for it in self.config:
-            self.config[it].update(config[it])
+            for param in self.config[it]:
+                try:
+                    if isinstance(self.config[it][param], int) and isinstance(config[it][param], int):
+                        self.config[it][param] = config[it][param]
+                except KeyError:
+                    pass
     else:
         print(f'Keys are different current vs remote: {self.config.keys()} vs {config.keys()}')
         print('Keep the curent configuration')
