@@ -423,6 +423,7 @@ def parse_input():
     trace_parser.add_argument('movie', type=str, default='data/sr_2_LED_movie.tif',
                               help='movie stack file')
     trace_parser.add_argument('-z', '--zstep', type=int, default=100, help='z-step in nm. Default: 100')
+    trace_parser.add_argument('--zdirection', type=str, default='approach', help='Choose approach/retract for the direction of calibration. Default: approach')
     trace_parser.add_argument('-xypx', '--xypixel', type=int, default=110, help='xy pixel size in nm. Default: 110')
     trace_parser.add_argument('--nframes', type=int, default=None,
                               help='now many frames to analyse from the movie. Default: None')

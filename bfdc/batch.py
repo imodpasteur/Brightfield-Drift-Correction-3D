@@ -154,13 +154,14 @@ class BatchDrift:
 
             else:
                 self.log('No ROI')
+        self.log(f'Finished processing {len(fov_list)}')
         return 0
 
-    def log(self, msg=None):
+    def log(self, msg=None, level='info'):
         if self.callback:
             self.callback({'Message': msg})
             print(msg)
-        logger.info(msg)
+        logger.__getattribute__(level)(msg)
 
 
 

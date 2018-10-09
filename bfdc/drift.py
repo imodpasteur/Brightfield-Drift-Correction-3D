@@ -325,8 +325,14 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
 
 
 def main(argsv=None, callback=None):
-    print('<==== Start BFDC Python module ====>')
-    sys.stdout.flush()
+    def log(msg=None, level='info'):
+        if callback:
+            callback({'Message': msg})
+            print(msg)
+        logger.__getattribute__(level)(msg)
+
+    log('<==== Start BFDC Python module ====>')
+
     parser = iot.parse_input()
     try:
         if argsv is None:
@@ -334,41 +340,38 @@ def main(argsv=None, callback=None):
         else:
             args = parser.parse_args(argsv)
     except TypeError:
-        logger.error('Wrong args while parsing: ', argsv)
+        log(f'Wrong args while parsing: {argsv}', level='error')
         exit(1)
     if args.command == 'trace':
         assert isinstance(args.xypixel, int)
         assert isinstance(args.zstep, int)
 
         cal_path = iot.get_abs_path(args.dict)
-        logger.info(f'Opening calibration {args.dict}')
-        if callback: callback({'Message':f'Opening calibration {args.dict}'})
+        log(f'Opening calibration {args.dict}')
         cal_stack = iot.open_stack(cal_path)
-        logger.info(f'Imported dictionary {cal_stack.shape}')
-        if callback: callback({'Message':f'Imported dictionary {cal_stack.shape}'})
+        if args.zdirection == 'approach':
+            cal_stack = cal_stack[::-1]
+            log(f'Due to calibration direction {args.zdirection}, calibration stack was inverted')
+        log(f'Imported dictionary {cal_stack.shape}')
 
         roi_path = iot.get_abs_path(args.roi)
-        logger.info(f'Opening roi {args.roi}')
-        if callback: callback({'Message':f'Opening roi {args.roi}'})
+        log(f'Opening roi {args.roi}')
         roi = ft.read_roi(roi_path)
 
         movie_path = iot.get_abs_path(args.movie)
         if args.lock:
             lock = iot.put_trace_lock(os.path.dirname(movie_path))
-        logger.info(f'Opening movie {args.movie}')
-        if callback: callback({'Message':f'Opening movie {args.movie}'})
-        # movie = io.imread(movie_path)
+        log(f'Opening movie {args.movie}')
         movie = iot.TiffStackOpener(movie_path)
         try:
-            logger.info(f'Imported movie {movie.shape}')
-            if callback: callback({'Message':f'Imported movie {movie.shape}'})
+            log(f'Imported movie {movie.shape}')
             size_check = iot.check_stacks_size_equals(cal_stack, movie)
         except AttributeError:
-            logger.info(f'Imported movie from the set of tif files')
+            log(f'Imported movie from the set of tif files')
             size_check = True
 
         if size_check:
-            logger.info('Stack and movie of equal sizes')
+            log('Stack and movie of equal sizes')
             drift_ = trace_drift_auto(args=args,
                                       cal_stack=cal_stack,
                                       movie=movie,
@@ -376,7 +379,7 @@ def main(argsv=None, callback=None):
                                       debug=False,
                                       callback=callback)
         else:
-            logger.info('Stack and movie of different sizes, running on full size')
+            log('Stack and movie of different sizes, running on full size')
             drift_ = trace_drift(args, cal_stack, movie)
 
         if drift_.shape[0] > 0:
@@ -385,9 +388,9 @@ def main(argsv=None, callback=None):
             iot.save_drift_table(drift_, save_path)
             iot.save_drift_plot(move_drift_to_zero(drift_, 10), save_path + "_2zero" + ".png",callback=callback)
 
-            logger.info('Drift table saved, exiting')
+            log('Drift table saved, exiting')
         else:
-            logger.info('Drift table empty, exiting')
+            log('Drift table empty, exiting')
 
         if args.lock:
             unlock = iot.remove_trace_lock(lock)
@@ -397,24 +400,20 @@ def main(argsv=None, callback=None):
         zola_path = iot.get_abs_path(args.zola_table)
         bf_path = iot.get_abs_path(args.drift_table)
 
-        logger.info(f'Opening localization table')
-        if callback: callback({'Message': f'Opening localization table'})
+        log(f'Opening localization table')
         zola_table = iot.open_csv_table(zola_path)
-        logger.info(f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
+        log(f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
 
-        if callback: callback({'Message': f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames'})
         bf_table = iot.open_csv_table(bf_path)
 
         if args.smooth > 0:
-            logger.info(f'Apply gaussian filter to the drift with sigma = {args.smooth}')
-            if callback: callback({'Message': f'Apply gaussian filter to the drift with sigma = {args.smooth}'})
+            log(f'Apply gaussian filter to the drift with sigma = {args.smooth}')
 
             bf_table[:, 1:4] = iot.gf1(bf_table[:, 1:4],
                                        sigma=args.smooth,
                                        axis=0)
 
-        logger.info(f'Applying drift')
-        if callback: callback({'Message': f'Applying drift'})
+        log(f'Applying drift')
 
         zola_table_dc, bf_table_int = apply_drift(bf_table=bf_table,
                                                   zola_table=zola_table,
@@ -425,8 +424,7 @@ def main(argsv=None, callback=None):
                                                   zinvert=args.zinvert)
 
         path = os.path.splitext(zola_path)[0] + f'_BFDC_smooth_{args.smooth}.csv'
-        logger.info(f'saving results to {path}')
-        if callback: callback({'Message': f'saving results to {path}'})
+        log(f'saving results to {path}')
         iot.save_zola_table(zola_table_dc, path)
         iot.save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png', callback=callback)
 
