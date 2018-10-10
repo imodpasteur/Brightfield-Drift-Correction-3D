@@ -469,6 +469,10 @@ def parse_input():
     batch_parser.add_argument('--zdirection', type=str, default='approach',
                               help='Choose approach/retract for the direction of calibration. Default: approach')
     batch_parser.add_argument('-xypx', '--xypixel', type=int, default=110, help='xy pixel size in nm. Default: 110')
+    batch_parser.add_argument('--skip', type=int, default=0,
+                              help='how many frames to skip form the movie. Default: 0')
+    batch_parser.add_argument('--start', type=int, default=0,
+                              help='how many frames to skip in the beginning of the movie. Default: 0')
 
     batch_parser.add_argument('--fov_prefix', type=str, default='FOV',
                               help='Prefix of a folder with a single field of view. Default: FOV ')
