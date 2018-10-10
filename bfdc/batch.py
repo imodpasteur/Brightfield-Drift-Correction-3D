@@ -1,4 +1,4 @@
-from bfdc.drift import *
+from bfdc import drift
 import tkinter as tk
 from tkinter import filedialog
 import os
@@ -11,28 +11,26 @@ sep = os.path.sep
 base = lambda path: os.path.basename(os.path.normpath(path))
 relative = lambda path, parent: path[len(parent):]
 parent = os.path.dirname
-import sys
-
-
 
 
 class BatchDrift:
 
     def __init__(self, batch_path,
-                fov_prefix='FOV',
-                dict_folder_prefix='dict_',
-                roi_suffix='roi',
-                dict_suffix='ome.tif',
-                sr_folder_prefix='sr',
-                sr_movie_suffix='Pos0.ome.tif',
-                zola_dc_filename="ZOLA*BFDC*.csv",
-                dc_table_filename="BFCC*.csv",
-                zola_raw_filename="ZOLA_localization_table.csv",
-                zola_lock_filename="ZOLA_.lock",
-                smooth=50,
-                filter_bg=100,
-                callback=None,
-                **kwargs):
+                 fov_prefix='FOV',
+                 dict_folder_prefix='dict_',
+                 roi_suffix='roi',
+                 dict_suffix='ome.tif',
+                 sr_folder_prefix='sr',
+                 sr_movie_suffix='Pos0.ome.tif',
+                 zola_dc_filename="ZOLA*BFDC*.csv",
+                 dc_table_filename="BFCC*.csv",
+                 zola_raw_filename="ZOLA_localization_table.csv",
+                 zola_lock_filename="ZOLA_.lock",
+                 smooth=50,
+                 filter_bg=100,
+                 callback=None,
+                 main=None,
+                 **kwargs):
         self.batch_path = batch_path
         self.fov_prefix = fov_prefix
         self.dict_folder_prefix = dict_folder_prefix
@@ -47,6 +45,7 @@ class BatchDrift:
         self.smooth = smooth
         self.filter_bg = filter_bg
         self.callback = callback
+        self.main = main
 
         self.do_batch()
 
@@ -98,7 +97,7 @@ class BatchDrift:
             self.log("start BF tracking")
 
             args = ["trace", bfdict, roi, movie, '--lock', '1']
-            main(argsv=args, callback=self.callback)
+            self.main(argsv=args, callback=self.callback)
 
         else:
             self.log('Found BFDC table --- skipping')
@@ -116,7 +115,7 @@ class BatchDrift:
                     self.log("Apply drift")
                     args = f"apply {zola_table[0]} {drift_table} \
                             --smooth={str(self.smooth)} --maxbg={str(self.filter_bg)}"
-                    main(argsv=args.split(), callback=self.callback)
+                    self.main(argsv=args.split(), callback=self.callback)
                 elif len(z_lock) == 1:
                     self.log(f'Found {base(z_lock[0])} --- skipping')
 
@@ -134,7 +133,6 @@ class BatchDrift:
         fov_list = self.parse_fovs(self.batch_path)
         msg = f'Found {len(fov_list)} folders starting with FOV'
         self.log(msg)
-
 
         for fov in sorted(fov_list):
             self.log(f'Processing {relative(fov,self.batch_path)}')

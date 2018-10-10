@@ -279,7 +279,7 @@ def move_drift_to_zero(drift_nm, ref_average=10):
     return drift_
 
 
-def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=100, zinvert=0):
+def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=0, maxbg=0, zinvert=0):
     # TODO: save smoothed drift plot with interpolated frame numbers
     # TODO: extrapolate to all frame numbers in the ZOLA table
     """
@@ -296,6 +296,7 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
     bf_table = iot.interpolate_drift_table(bf_table, start=start, skip=skip, smooth=smooth)
 
     if zinvert:
+        print('z invert')
         bf_table[:, 3] = -1 * bf_table[:, 3]  # flip z
 
     zola_frame_num = int(np.max(zola_table[:, 1]))
@@ -316,13 +317,11 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=10, maxbg=10
     zola_table_dc = zola_table.copy()
     zola_table_dc[:, [2, 3, 4]] = zola_table_dc[:, [2, 3, 4]] - bf_drift_framed[:, [1, 2, 3]]
     zola_table_dc[:, [11, 12, 13]] = bf_drift_framed[:, [1, 2, 3]]
-    if zinvert:
-        print('Invert z')
-        zola_table_dc[:, 4] = -1 * zola_table_dc[:, 4]
     zola_dc_wo_bf = zola_table_dc
     if maxbg > 0:
-        print(f'Filter background < {minbg}')
+        print(f'Filter background < {maxbg}')
         zola_dc_wo_bf = zola_table_dc[zola_table_dc[:, 6] < maxbg]
+        print(f'Filter out {len(zola_table_dc) - len(zola_dc_wo_bf)}')
     return zola_dc_wo_bf, bf_table
 
 
@@ -431,7 +430,7 @@ def main(argsv=None, callback=None):
         iot.save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png', callback=callback)
 
     elif args.command == 'batch':
-        batch.BatchDrift(callback=callback,**vars(args))
+        batch.BatchDrift(callback=callback, main=main, **vars(args))
     else:
         parser.print_help()
 
