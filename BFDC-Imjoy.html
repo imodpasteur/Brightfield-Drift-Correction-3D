@@ -22,22 +22,11 @@ It will also show the drift plot in the separate window.
   "outputs": null,
   "icon": null,
   "env": "conda create -n imjoy python=3.7",
-  "requirements": [],
+  "requirements": ["git+https://github.com/imodpasteur/Brightfield-Drift-Correction-3D.git@dev"],
   "dependencies": []
 }
 </config>
 
-<script lang="python">
-#"git+https://github.com/imodpasteur/Brightfield-Drift-Correction-3D.git@dev"
-import numpy as np
-#from bfdc import drift
-import sys
-import os
-sys.path.insert(0,'/Volumes/Imod-grenier/Andrey/Phase retrieve/drift-correction/BFDC/')
-from bfdc import drift
-import base64
-import asyncio
-import json
 
 class PythonPlugin():
 
@@ -46,8 +35,6 @@ class PythonPlugin():
 
     root = await api.getConfig('root')
     self.config_root(root)
-
-    #api.getConfig('root').then(self.config_root).catch(print)
     
     self.config = {"trace":{'xypixel':100, 
                             'zstep':100,
@@ -64,7 +51,12 @@ class PythonPlugin():
                             'maxbg':0,
                             'paths':['zola_table',
                                      'drift_table']},
-                   "batch":{'fov_prefix': 'FOV',
+                   "batch":{'xypixel':100, 
+                            'zstep':100,
+                            'zdirection':['approach','retract'], 
+                            'start':0,  
+                            'skip':0,
+                            'fov_prefix': 'FOV',
                             'dict_folder_prefix': 'dict',
                             'dict_suffix': 'ome.tif',
                             'sr_folder_prefix': 'sr_',
@@ -124,12 +116,11 @@ class PythonPlugin():
   
   async def run(self,my):
     print(my.config)
-    action = my.config.type
     arg_dict = my.config
-    _ = arg_dict.pop('type')
-    self.update_config(action,arg_dict)
-
+    action = arg_dict.pop('type')
     if action in self.config:
+        self.update_config(action,arg_dict)
+    
         titles = self.config[action]['paths']
         print(titles)
         try:
@@ -139,8 +130,8 @@ class PythonPlugin():
             return
         #paths = ['as','sdf']
         print(paths)
-        args = []
-        args += [action]
+        
+        args = [action]
         args += paths
         args += [f'--{key}={value}' for key,value in zip(arg_dict.keys(),arg_dict.values())]
         print(args)
@@ -192,12 +183,13 @@ class PythonPlugin():
         os.path.isdir(path)
     except:
         path = r'%s'%path
+
     if os.path.isdir(path):
         self.root = path
         api.setConfig('root', path)
         self.show_config(None)
     else:
-        api.alert('Suggerted path is wrong, try again')
+        api.alert('Suggested path is wrong, try again')
         self.config_root()
     return
 
