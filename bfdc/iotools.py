@@ -73,14 +73,17 @@ class TiffStackOpener:
         self.tif_set = None
         self.file_list = []
         if os.path.isdir(path):
+            logger.info('Opening virtual tif set')
             self.open_tif_set()
             self.get_file_list()
             # self.tif_type_selector()
         elif path.endswith('ome.tif'):
             if virtual:
+                logger.info('Opening virtual ome.tif stack')
                 self.open_ome_tif_virtual()
                 self.type = 'ome_virt'
             else:
+                logger.info('Opening ome.tif stack to the memory')
                 self.open_ome_tif_memory()
                 self.type = 'ome_mem'
 
@@ -462,6 +465,11 @@ def parse_input():
     batch_parser = subparsers.add_parser('batch', help='''Batch trace and apply drift 3D to ZOLA table''')
     batch_parser.add_argument('batch_path', type=str, default='',
                               help='data path')
+    batch_parser.add_argument('-z', '--zstep', type=int, default=100, help='z-step in nm. Default: 100')
+    batch_parser.add_argument('--zdirection', type=str, default='approach',
+                              help='Choose approach/retract for the direction of calibration. Default: approach')
+    batch_parser.add_argument('-xypx', '--xypixel', type=int, default=110, help='xy pixel size in nm. Default: 110')
+
     batch_parser.add_argument('--fov_prefix', type=str, default='FOV',
                               help='Prefix of a folder with a single field of view. Default: FOV ')
 
