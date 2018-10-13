@@ -46,7 +46,7 @@ class PythonPlugin():
   async def setup(self):
     print(f'Running BFDC in Python {sys.version}.')
 
-    root = await api.getConfig('root')
+    root = str(await api.getConfig('root'))
     self.config_root(root)
 
     #api.getConfig('root').then(self.config_root).catch(print)
