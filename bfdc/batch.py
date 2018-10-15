@@ -1,4 +1,4 @@
-from bfdc.drift import *
+from bfdc import drift
 import tkinter as tk
 from tkinter import filedialog
 import os
@@ -16,19 +16,21 @@ parent = os.path.dirname
 class BatchDrift:
 
     def __init__(self, batch_path,
-                fov_prefix='FOV',
-                dict_folder_prefix='dict_',
-                roi_suffix='roi',
-                dict_suffix='ome.tif',
-                sr_folder_prefix='sr',
-                sr_movie_suffix='Pos0.ome.tif',
-                zola_dc_filename="ZOLA*BFDC*.csv",
-                dc_table_filename="BFCC*.csv",
-                zola_raw_filename="ZOLA_localization_table.csv",
-                zola_lock_filename="ZOLA_.lock",
-                smooth=50,
-                filter_bg=100,
-                **kwargs):
+                 fov_prefix='FOV',
+                 dict_folder_prefix='dict_',
+                 roi_suffix='roi',
+                 dict_suffix='ome.tif',
+                 sr_folder_prefix='sr',
+                 sr_movie_suffix='Pos0.ome.tif',
+                 zola_dc_filename="ZOLA*BFDC*.csv",
+                 dc_table_filename="BFCC*.csv",
+                 zola_raw_filename="ZOLA_localization_table.csv",
+                 zola_lock_filename="ZOLA_.lock",
+                 smooth=50,
+                 filter_bg=100,
+                 callback=None,
+                 main=None,
+                 **kwargs):
         self.batch_path = batch_path
         self.fov_prefix = fov_prefix
         self.dict_folder_prefix = dict_folder_prefix
@@ -42,14 +44,17 @@ class BatchDrift:
         self.zola_lock_filename = zola_lock_filename
         self.smooth = smooth
         self.filter_bg = filter_bg
+        self.callback = callback
+        self.main = main
 
         self.do_batch()
 
     def parse_fovs(self,path):
         fov_list = glob(pathname=path + sep + self.fov_prefix + "*" + sep)
-        logger.info(f'Found {len(fov_list)} folders starting with FOV')
+        self.log(f'Found {len(fov_list)} folders starting with FOV')
         for i,f in enumerate(sorted(fov_list)):
-            logger.info(f'{i} -- {relative(f,path)}')
+            self.log(f'{i} -- {relative(f,path)}')
+            #self.flush()
         return fov_list
 
     def find_file(self, path, name, pattern, expected_number=None):
@@ -59,12 +64,14 @@ class BatchDrift:
                 assert len(flist) == expected_number, f'Found {len(flist)} {name}s, while expected {expected_number}'
             if flist:
                 for f in flist:
-                    logger.info(f'{base(path)}: Found {name}: {relative(f,path)}')
+                    self.log(f'{base(path)}: Found {name}: {relative(f,path)}')
+
             else:
-                logger.info(f'No {name} was found using pattern \"{pattern}\"')
+                self.log(f'No {name} was found using pattern \"{pattern}\"')
+
             return flist
         except IndexError:
-            logger.info(f'{base(path)}: No {name}')
+            self.log(f'{base(path)}: No {name}')
             return None
 
     def find_dict(self, roi_path):
@@ -87,13 +94,13 @@ class BatchDrift:
     def batch_trace_drift(self, bfdict, roi, movie):
         bfout = glob(parent(movie) + sep + self.dc_table_filename)
         if not bfout:
-            logger.info("start BF tracking")
+            self.log("start BF tracking")
 
             args = ["trace", bfdict, roi, movie, '--lock', '1']
-            main(argsv=args)
+            self.main(argsv=args, callback=self.callback)
 
         else:
-            logger.info('Found BFDC table --- skipping')
+            self.log('Found BFDC table --- skipping')
 
     def batch_apply_drift(self, movie:str):
         zola_dc_table = glob(parent(movie) + sep + self.zola_dc_filename)
@@ -104,41 +111,56 @@ class BatchDrift:
                 zola_table = glob(parent(drift_table) + sep + self.zola_raw_filename)
                 z_lock = glob(parent(drift_table) + sep + self.zola_lock_filename)
                 if zola_table and not z_lock:
-                    logger.info(f'Found {base(zola_table[0])}')
-                    logger.info("Apply drift")
-
+                    self.log(f'Found {base(zola_table[0])}')
+                    self.log("Apply drift")
                     args = f"apply {zola_table[0]} {drift_table} \
                             --smooth={str(self.smooth)} --maxbg={str(self.filter_bg)}"
-                    main(argsv=args.split())
+                    self.main(argsv=args.split(), callback=self.callback)
                 elif len(z_lock) == 1:
-                    logger.info(f'Found {base(z_lock[0])} --- skipping')
+                    self.log(f'Found {base(z_lock[0])} --- skipping')
+
                 else:
-                    logger.info('No ZOLA table found')
+                    self.log('No ZOLA table found')
+
         else:
-            logger.info('Folder already processed')
+            self.log('Folder already processed')
+
+
 
     def do_batch(self):
-        logger.info(self.batch_path)
+        self.log('Start batch process')
+        self.log(self.batch_path)
         fov_list = self.parse_fovs(self.batch_path)
-        logger.info(f'Found {len(fov_list)} folders starting with FOV')
+        msg = f'Found {len(fov_list)} folders starting with FOV'
+        self.log(msg)
 
         for fov in sorted(fov_list):
-            logger.info(f'Processing {relative(fov,self.batch_path)}')
+            self.log(f'Processing {relative(fov,self.batch_path)}')
+
             roi = self.find_roi(fov)
             if roi:
                 bfdict = self.find_dict(roi[0])[0]
                 movies = self.find_movies(fov)
                 if movies:
                     for i,movie in enumerate(movies):
-                        logger.info(f'Processing movie {i+1}/{len(movies)}: {relative(movie,self.batch_path)}')
+                        self.log(f'Processing movie {i+1}/{len(movies)}: {relative(movie,self.batch_path)}')
+
                         self.batch_trace_drift(bfdict, roi[0], movie)
                         self.batch_apply_drift(movie)
                 else:
-                    logger.info(f'No movies found with \"{self.sr_folder_prefix}\" prefix')
+                    self.log(f'No movies found with \"{self.sr_folder_prefix}\" prefix')
 
             else:
-                logger.info('No ROI')
+                self.log('No ROI')
+        self.log(f'Finished processing {len(fov_list)}')
         return 0
+
+    def log(self, msg=None, level='info'):
+        if self.callback:
+            self.callback({'Message': msg})
+            print(msg)
+        logger.__getattribute__(level)(msg)
+
 
 
 if __name__ == '__main__':
