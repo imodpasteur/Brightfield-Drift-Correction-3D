@@ -46,8 +46,8 @@ class PythonPlugin():
   async def setup(self):
     print(f'Running BFDC in Python {sys.version}.')
 
-    root = str(await api.getConfig('root'))
-    self.config_root(root)
+    self.root = str(await api.getConfig('root'))
+    self.config_root()
 
     #api.getConfig('root').then(self.config_root).catch(print)
     
@@ -135,7 +135,7 @@ class PythonPlugin():
     action = arg_dict.pop('type')
     if action in self.config:
         self.update_config(action,arg_dict)
-    
+        self.config_root()
         titles = self.config[action]['paths']
         print(titles)
         try:
@@ -179,19 +179,19 @@ class PythonPlugin():
     else:
         raise IndexError(f'Expected list/tuple, got {type(title_list)}')
 
-  def show_config(self,args):
+  def show_config(self):
     print(f'Root directory is set to : {self.root}')
     api.showProgress(0)
 
-  def config_root(self,root):
-    print(f'found getConfig.root {root}')
-    api.showStatus(f'Found root path: {root}')
-    if root == "null" or not os.path.isdir(root):
+  def config_root(self):
+    print(f'found getConfig.root {self.root}')
+    api.showStatus(f'Found root path: {self.root}')
+    if self.root == "null" or not os.path.isdir(self.root):
         api.showDialog({"name": "Configure start folder",
-                          "ui": "Please type in the path to start with: {id:'path', type:'string', placeholder: '%s'}."%root}).then(self.set_root)
+                          "ui": "Please type in the path to start with: {id:'path', type:'string', placeholder: '%s'}."%self.root}).then(self.set_root)
     else:
-        self.root = root
-        self.show_config(root)
+        #self.root = root
+        self.show_config()
 
   def set_root(self,path):
     api.showStatus(f'Received {path.path} from the dialog')
