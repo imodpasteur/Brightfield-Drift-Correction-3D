@@ -204,7 +204,7 @@ class PythonPlugin():
     if os.path.isdir(path):
         self.root = path
         api.setConfig('root', path)
-        self.show_config(None)
+        self.show_config()
     else:
         api.alert('Suggested path is wrong, try again')
         self.config_root()
