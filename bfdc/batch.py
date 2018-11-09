@@ -51,7 +51,7 @@ class BatchDrift:
 
     def parse_fovs(self,path):
         fov_list = glob(pathname=path + sep + self.fov_prefix + "*" + sep)
-        self.log(f'Found {len(fov_list)} folders starting with FOV')
+        self.log(f'Found {len(fov_list)} folders starting with {self.fov_prefix}')
         for i,f in enumerate(sorted(fov_list)):
             self.log(f'{i} -- {relative(f,path)}')
             #self.flush()
