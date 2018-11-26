@@ -4,5 +4,7 @@ data
 *.ipynb
 build/*
 *.pyc
-bfdc/egg-info/*
+*.egg
+bfdc.egg-info/*
 bfdc/__pycache__
+bfdc/__pycache__/__main__.cpython-36.pyc
