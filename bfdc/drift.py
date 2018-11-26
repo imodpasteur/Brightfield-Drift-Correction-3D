@@ -8,7 +8,7 @@ import bfdc.feature as ft
 import bfdc.iotools as iot
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class WrongCrop(Exception):
@@ -26,6 +26,7 @@ class DriftFitter:
     """
 
     def __init__(self, cal_stack, roi, radius_xy=3):
+        self.roi = roi
         self.boundaries = ft.roi_to_boundaries(roi)
         self.dict = ft.crop_using_xy_boundaries(cal_stack, boundaries=self.boundaries)
         self.z_crop = (0, -1)
@@ -55,11 +56,13 @@ class DriftFitter:
         try:
             for i, f in enumerate(frame_list):
                 frame = movie[f]
-                logging.debug(f'frame {i+1}')
+                logger.debug(f'\nOpen frame {f+1}')
                 frame_mean = frame.mean()
-                if frame_mean > min_signal:
+                if frame_mean < min_signal:
+                    logger.debug('Skip frame due to low mean signal')
+                else:
                     crop_frame = ft.crop_using_xy_boundaries(frame, b, extend=extend_xy)
-                    logging.debug(f'Cropping frame {crop_frame.shape}')
+                    logger.debug(f'Cropping frame {crop_frame.shape}')
                     if min(crop_frame.shape) == 0:
                         raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
                     crop_dict = self.crop_dict()
@@ -67,48 +70,53 @@ class DriftFitter:
                     if cc.max() < min_xcorr:
                         logger.warning(f'xcorr.max is lower than threshold {min_xcorr}')
                         self.z_crop = (0, None)
+                        logger.info('Expanding z limits')
                         crop_dict = self.crop_dict()
                         cc = xcorr.cc_stack(crop_frame, crop_dict)
-                        logger.info('Expanding z limits')
-
+                        
                     if cc.max() < min_xcorr:
                         logger.warning(f'xcorr value is still lower than {min_xcorr}, skipping the frame')
-                        problems.append(i + 1)
-                        continue
-                    # out.append(cc_max(cc) limits)
-                    try:
-                        x, y, z, good = xcorr.fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20,
-                                                           debug=debug)
-
-                    except ValueError:
-                        raise (ValueError('unable to unpack fit_gauss_3d output'))
-
-                    except [xcorr.LowXCorr, BadGaussFit]:
-                        logging.warning(
-                            f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
-                        # if len(out):
-                        #    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
-                        problems.append(i + 1)
-
-                    except Exception as e:
-                        print(e)
-                        traceback.print_stack()
-                        problems.append(i + 1)
-
-                    if not good:
-                        logger.warning(f'Bad fit in frame {i+1}')
-                        problems.append(i + 1)
+                        problems.append(f + 1)
                     else:
-                        z_ = z + self.z_crop[0] - self.zCenter
-                        x_ = x + self.x_correction - xc - self.radius_xy
-                        y_ = y + self.y_correction - yc - self.radius_xy
-                    logger.debug(f"x_px = {x}, y_px = {y}, \
-                                                x_correction = {self.x_correction}, y_correction = {self.y_correction}")
+                    # out.append(cc_max(cc) limits)
+                        try:
+                            x, y, z, good = xcorr.fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20,
+                                                            debug=debug)
 
-                    out = np.append(out, np.array([f + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
-                    logging.debug(f'found xyz {x,y,z}')
-                    self.update_z_crop(z + self.z_crop[0])
-                    self.update_xy_boundaries(x, y, extend_xy)
+                        except ValueError:
+                            raise (ValueError('unable to unpack fit_gauss_3d output'))
+
+                        except [xcorr.LowXCorr, BadGaussFit]:
+                            logger.warning(
+                                f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
+                            # if len(out):
+                            #    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
+                            problems.append(f + 1)
+
+                        except Exception as e:
+                            print(e)
+                            traceback.print_stack()
+                            problems.append(f + 1)
+
+                        if not good:
+                            logger.warning(f'Bad fit in frame {f+1}')
+                            problems.append(f + 1)
+                            self.boundaries = ft.roi_to_boundaries(self.roi)
+                            self.z_crop = (0, -1)
+                            self.x_correction = 0
+                            self.y_correction = 0
+
+                        else:
+                            z_ = z + self.z_crop[0] - self.zCenter
+                            x_ = x + self.x_correction - xc - self.radius_xy
+                            y_ = y + self.y_correction - yc - self.radius_xy
+                            logger.debug(f"x_px = {x}, y_px = {y}, \
+                                                        x_correction = {self.x_correction}, y_correction = {self.y_correction}")
+
+                            out = np.append(out, np.array([f + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
+                            logging.debug(f'found xyz {x,y,z}')
+                            self.update_z_crop(z + self.z_crop[0])
+                            self.update_xy_boundaries(x, y, extend_xy)
 
                 print(f'\rProcessed {f+1}/{total} frames, found {len(out)} BF frames', end=' ')
                 sys.stdout.flush()
@@ -121,11 +129,11 @@ class DriftFitter:
         except WrongCrop as e:
             print(e)
             logging.error('Crop hits the border of the image, abort')
-            problems.append(i + 1)
+            problems.append(f + 1)
 
         except Exception as e:
             logging.error(e)
-            problems.append(i + 1)
+            problems.append(f + 1)
 
         finally:
             n = len(problems)
@@ -145,15 +153,20 @@ class DriftFitter:
         return self.dict[self.z_crop[0]:self.z_crop[1]]
 
     def update_xy_boundaries(self, x, y, extend):
+        logger = logging.getLogger(__name__)
+        logger.debug('updating xy boundaries')
         b = self.boundaries
+        logger.debug(f'Current boundaries: {b}')
         e = extend
         x0 = (b['xmax'] - b['xmin']) / 2 + e
         y0 = (b['ymax'] - b['ymin']) / 2 + e
+        logger.debug(f'Computed center xy {(x0,y0)}')
         xdif_ = x - x0
         ydif_ = y - y0
-        xdif = int(np.round(xdif_, decimals=0))
-        ydif = int(np.round(ydif_, decimals=0))
+        logger.debug(f'Difference xy: {(xdif_,ydif_)}')
         if abs(xdif_) > 0.8 or abs(ydif_) > 0.8:
+            xdif = int(np.round(xdif_, decimals=0))
+            ydif = int(np.round(ydif_, decimals=0))
             logging.debug(f'moving xy boundary by {xdif},{ydif}')
             b['xmin'] += xdif
             b['xmax'] += xdif
@@ -161,6 +174,8 @@ class DriftFitter:
             b['ymin'] += ydif
             b['ymax'] += ydif
             self.y_correction += ydif
+        else:
+            logger.debug('Ignore')
 
 
 def get_drift_3d(movie, frame_list, cal_stack, debug=False):
