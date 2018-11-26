@@ -47,7 +47,7 @@ class DriftFitter:
         yc = np.mean([b["ymax"], -b["ymin"]])
         out = np.empty((0, 4))
         x_, y_, z_ = 0, 0, 0
-        total = max(frame_list)
+        total = len(frame_list)
         problems = []
         i = 0
 
@@ -88,9 +88,6 @@ class DriftFitter:
                         #    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
                         problems.append(i + 1)
 
-                    except WrongCrop as e:
-                        logger.error(e)
-
                     except Exception as e:
                         print(e)
                         traceback.print_stack()
@@ -119,6 +116,10 @@ class DriftFitter:
                                            "total" : total,
                                            "found" : len(out)}
                               })
+        except WrongCrop as e:
+            print(e)
+            logging.error('Crop hits the border of the image, abort')
+            problems.append(i + 1)
 
         finally:
             n = len(problems)
