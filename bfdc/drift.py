@@ -29,6 +29,7 @@ class DriftFitter:
         self.roi = roi
         self.boundaries = ft.roi_to_boundaries(roi)
         self.dict = ft.crop_using_xy_boundaries(cal_stack, boundaries=self.boundaries)
+        self.dict = ft.gf(self.dict, 1)
         self.z_crop = (0, -1)
         self.x_correction = 0
         self.y_correction = 0
