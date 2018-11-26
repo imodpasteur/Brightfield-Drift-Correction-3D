@@ -138,9 +138,9 @@ def crop_using_xy_boundaries(mask:np.ndarray, boundaries:dict, extend:int=0):
     x_max = mask.shape[-1]
     y_max = mask.shape[-2]
     x1 = max(0, b['xmin'] - e)
-    x2 = max(x_max, b['xmax'] + e)
+    x2 = min(x_max, b['xmax'] + e)
     y1 = max(0, b['ymin'] - e)
-    y2 = max(x_max, b['ymax'] + e)
+    y2 = min(x_max, b['ymax'] + e)
     if np.ndim(mask) == 3:
         return mask[:, y1:y2, x1:x2]
     elif np.ndim(mask) == 2:
