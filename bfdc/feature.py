@@ -127,16 +127,6 @@ def get_xy_boundaries(segment, extend = 0):
     return dict(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
 
 
-def crop_2d_using_xy_boundaries(mask, boundaries):
-    """
-    :mask: any 2D dataset
-    :boundaries: dict{xmin,xmax,ymin,ymax}
-    :return: cropped mask
-    """
-    b = boundaries
-    return mask[b['ymin']:b['ymax'], b['xmin']:b['xmax']]
-
-
 def crop_using_xy_boundaries(mask:np.ndarray, boundaries:dict, extend:int=0):
     """
     :mask: any 2D or 3D dataset
