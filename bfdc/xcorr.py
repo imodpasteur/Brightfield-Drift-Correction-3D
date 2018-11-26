@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from skimage.feature import match_template
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class LowXCorr(Exception):
@@ -36,24 +37,25 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
 
     if debug:
         plt.imshow(stack.max(axis=0))
-        plt.title('Max projection of cc-stack')
+        plt.title('Max xy projection of cc-stack')
         plt.show()
 
     z_px, y_px, x_px = get_abs_max(stack)
+    logger.debug(f'Got absolute maximum xyz (px) {(z_px, y_px, x_px )}')
     cc_value = np.max(stack)
     if cc_value < 0.2:
         #raise(LowXCorr("fit_gauss_3d: Cross corellation value os too low!"))
         logger.warning("fit_gauss_3d: Cross corellation value os too low!")
         return [0, 0, 0, False]
 
-    if debug:
-        print([z_px, y_px, x_px])
     r, rz = radius_xy, radius_z
     z_start = np.maximum(z_px - rz, 0)
     z_stop = np.minimum(z_px + rz + 2, len(stack) - 1)
+    logger.debug(f'Computing z boundaries before fit: z_start={z_start}, z_stop={z_stop}')
     cut_stack = stack[z_start:z_stop, y_px - r :y_px + r + 1, x_px - r :x_px + r + 1]
-    if debug: print(f'cut_stack shape {cut_stack.shape}')
-
+    if debug: print(f'After cutting x,y,z, we got cut_stack shape {cut_stack.shape}')
+    assert cut_stack.shape == (z_stop - z_start, 2 * r + 1, 2 * r +1 ), logger.error(f'Wrong cut_stack shape: \
+                    expected {(z_stop - z_start, 2 * r + 1, 2 * r +1 )}, got {cut_stack.shape}')
 
     xy_proj = cut_stack.max(axis=0)
     z_proj = cut_stack.max(axis=(1, 2))
@@ -90,7 +92,6 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
         plt.imshow(cut_stack.max(axis=2))
         plt.title('zy')
 
-        print(f'z_start={z_start}, z_stop={z_stop}')
 
         fig.add_subplot(144)
         plt.plot(x, z_proj, '.-', label='cc curve')
