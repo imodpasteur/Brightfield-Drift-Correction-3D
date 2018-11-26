@@ -81,7 +81,7 @@ class DriftFitter:
                     else:
                     # out.append(cc_max(cc) limits)
                         try:
-                            x, y, z, good = xcorr.fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=5, z_zoom=20,
+                            x, y, z, good = xcorr.fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=8, z_zoom=20,
                                                             debug=debug)
 
                         except ValueError:
@@ -111,8 +111,7 @@ class DriftFitter:
                             z_ = z + self.z_crop[0] - self.zCenter
                             x_ = x + self.x_correction - xc - self.radius_xy
                             y_ = y + self.y_correction - yc - self.radius_xy
-                            logger.debug(f"x_px = {x}, y_px = {y}, \
-                                                        x_correction = {self.x_correction}, y_correction = {self.y_correction}")
+                            logger.debug(f"x_px = {x}, y_px = {y}, x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
                             out = np.append(out, np.array([f + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
                             logging.debug(f'found xyz {x,y,z}')
