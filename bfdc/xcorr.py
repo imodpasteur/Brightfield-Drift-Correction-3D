@@ -31,8 +31,8 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
     
     from bfdc import gaussfit
 
-    logger.debug(f'Start fit_gauss_3d with the stack shape {stack.shape}, \
-                    radius_xy={radius_xy}, radius_z={radius_z}, z_zoom={z_zoom}')
+    logger.debug(f'Start fit_gauss_3d with the stack shape {stack.shape}')
+    logger.debug(f'radius_xy={radius_xy}, radius_z={radius_z}, z_zoom={z_zoom}')
     assert np.ndim(stack) == 3, logger.error(f'fit_gauss_3d: input stack shape is wrong, expected 3 dim, got {stack.shape}')
 
     if debug:
@@ -52,7 +52,13 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
     z_start = np.maximum(z_px - rz, 0)
     z_stop = np.minimum(z_px + rz + 2, len(stack) - 1)
     logger.debug(f'Computing z boundaries before fit: z_start={z_start}, z_stop={z_stop}')
-    cut_stack = stack[z_start:z_stop, y_px - r :y_px + r + 1, x_px - r :x_px + r + 1]
+
+    _, y_max, x_max = stack.shape
+    y1 = max(0, y_px - r) 
+    y2 = min(y_max, y_px + r + 1)
+    x1 = max(0, x_px - r) 
+    x2 = min(x_max, x_px + r + 1)
+    cut_stack = stack[z_start:z_stop, y1:y2, x1:x2]
     if debug: print(f'After cutting x,y,z, we got cut_stack shape {cut_stack.shape}')
     assert cut_stack.shape == (z_stop - z_start, 2 * r + 1, 2 * r +1 ), logger.error(f'Wrong cut_stack shape: \
                     expected {(z_stop - z_start, 2 * r + 1, 2 * r +1 )}, got {cut_stack.shape}')
