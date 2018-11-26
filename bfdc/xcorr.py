@@ -59,9 +59,10 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
     x1 = max(0, x_px - r) 
     x2 = min(x_max, x_px + r + 1)
     cut_stack = stack[z_start:z_stop, y1:y2, x1:x2]
-    if debug: print(f'After cutting x,y,z, we got cut_stack shape {cut_stack.shape}')
-    assert cut_stack.shape == (z_stop - z_start, 2 * r + 1, 2 * r +1 ), logger.error(f'Wrong cut_stack shape: \
-                    expected {(z_stop - z_start, 2 * r + 1, 2 * r +1 )}, got {cut_stack.shape}')
+    logger.debug(f'After cutting x,y,z, we got cut_stack shape {cut_stack.shape}')
+    if cut_stack.shape != (z_stop - z_start, 2 * r + 1, 2 * r +1 ):
+        logger.error(f'Wrong cut_stack shape: expected {(z_stop - z_start, 2 * r + 1, 2 * r +1 )}, got {cut_stack.shape}')
+        return [-1, -1, -1, False]
 
     xy_proj = cut_stack.max(axis=0)
     z_proj = cut_stack.max(axis=(1, 2))
@@ -89,14 +90,17 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
         fig.add_subplot(141)
         plt.imshow(xy_proj)
         plt.title('xy')
+        plt.colorbar()
 
         fig.add_subplot(142)
         plt.imshow(cut_stack.max(axis=1))
         plt.title('zx')
+        plt.colorbar()
 
         fig.add_subplot(143)
         plt.imshow(cut_stack.max(axis=2))
         plt.title('zy')
+        plt.colorbar()
 
 
         fig.add_subplot(144)
