@@ -2,3 +2,7 @@ data
 .idea
 .ipynb*
 *.ipynb
+build/*
+*.pyc
+bfdc/egg-info/*
+bfdc/__pycache__
