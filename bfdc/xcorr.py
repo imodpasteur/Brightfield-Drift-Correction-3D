@@ -68,7 +68,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, min_xcorr = 0.5, deb
 
     xy_proj = cut_stack.max(axis=0)
     #z_proj = cut_stack.max(axis=(1, 2))
-    z_proj = cut_stack[:,y_px].max(axis=1)
+    z_proj = cut_stack[:,r].max(axis=1) #ignore y
     # z_proj = cut_stack[:,r,r]
 
     #[(_min, _max, y, x, sig), good] = gaussfit.fitSymmetricGaussian(xy_proj,sigma=1)
