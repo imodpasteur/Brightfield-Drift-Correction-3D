@@ -6,6 +6,9 @@ import bfdc.batch as batch
 import bfdc.xcorr as xcorr
 import bfdc.feature as ft
 import bfdc.iotools as iot
+import matplotlib as mpl
+mpl.use('TkAgg')
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -25,7 +28,7 @@ class DriftFitter:
     Crops the stack and tracks the drift
     """
 
-    def __init__(self, cal_stack, roi, radius_xy=3):
+    def __init__(self, cal_stack, roi, radius_xy=3, radius_z=8):
         self.roi = roi
         self.boundaries = ft.roi_to_boundaries(roi)
         self.dict = ft.crop_using_xy_boundaries(cal_stack, boundaries=self.boundaries)
@@ -35,6 +38,7 @@ class DriftFitter:
         self.y_correction = 0
         self.zCenter = len(self.dict) // 2
         self.radius_xy = radius_xy
+        self.radius_z = radius_z
 
     def do_trace(self, movie, frame_list, extend_xy=5, min_xcorr=0.5, min_signal=100, debug=False, callback=None):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
@@ -81,7 +85,7 @@ class DriftFitter:
                     else:
                     # out.append(cc_max(cc) limits)
                         try:
-                            x, y, z, good = xcorr.fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=8, z_zoom=20,
+                            x, y, z, good = xcorr.fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=radius_z, z_zoom=20,
                                                             debug=debug)
 
                         except ValueError:
@@ -111,10 +115,14 @@ class DriftFitter:
                             z_ = z + self.z_crop[0] - self.zCenter
                             x_ = x + self.x_correction - xc - self.radius_xy
                             y_ = y + self.y_correction - yc - self.radius_xy
-                            logger.debug(f"x_px = {x}, y_px = {y}, x_correction = {self.x_correction}, y_correction = {self.y_correction}")
+                            logger.debug(f"x_px = {x}, y_px = {y}, z_px = {z}, x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
                             out = np.append(out, np.array([f + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
                             logging.debug(f'found xyz {x,y,z}')
+                            if debug:
+                                #plt.add_subplot(155)
+                                iot.plot_drift(out * [1,110,110,100])
+                                #plt.show()
                             self.update_z_crop(z + self.z_crop[0])
                             self.update_xy_boundaries(x, y, extend_xy)
 
@@ -145,7 +153,7 @@ class DriftFitter:
             return np.array(out)
 
     def update_z_crop(self, z):
-        z1, z2 = np.max([0, int(z - 5)]), np.min([int(z + 7), len(self.dict) - 1])
+        z1, z2 = np.max([0, int(z - self.radius_z)]), np.min([int(z + self.radius_z), len(self.dict) - 1])
         logger.debug(f'update_z_crop:z boundaries {z1},{z2}')
         self.z_crop = (z1, z2)
 

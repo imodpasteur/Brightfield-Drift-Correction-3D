@@ -22,7 +22,7 @@ def get_abs_max(data):
     return np.unravel_index(np.argmax(data), data.shape)
 
 
-def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, min_xcorr = 0.5, debug=False):
+def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, debug=False):
     """
     Detects maximum on the stack in 3D
     Fitting 2D gaussian in xy, 4-order polynomial in z
@@ -35,7 +35,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, min_xcorr = 0.5, deb
     logger.debug(f'radius_xy={radius_xy}, radius_z={radius_z}, z_zoom={z_zoom}')
     assert np.ndim(stack) == 3, logger.error(f'fit_gauss_3d: input stack shape is wrong, expected 3 dim, got {stack.shape}')
 
-    if debug:
+    if False:
         plt.imshow(stack.max(axis=0))
         plt.title('Max xy projection of cc-stack')
         plt.show()
@@ -51,8 +51,8 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, min_xcorr = 0.5, deb
         logger.debug(f'cc peak value={cc_value}')
 
     r, rz = radius_xy, radius_z
-    z_start = np.maximum(z_px - rz, 0)
-    z_stop = np.minimum(z_px + rz + 2, len(stack) - 1)
+    z_start = 0#np.maximum(z_px - rz, 0)
+    z_stop = None#np.minimum(z_px + rz + 2, len(stack) - 1)
     logger.debug(f'Computing z boundaries before fit: z_start={z_start}, z_stop={z_stop}')
 
     _, y_max, x_max = stack.shape
@@ -90,28 +90,28 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, min_xcorr = 0.5, deb
     if debug:
 
         fig = plt.figure(figsize=(10,3))
-        fig.add_subplot(141)
+        fig.add_subplot(151)
         plt.imshow(xy_proj)
         plt.title('xy')
         plt.colorbar()
 
-        fig.add_subplot(142)
+        fig.add_subplot(152)
         plt.imshow(cut_stack.max(axis=1))
         plt.title('zx')
         plt.colorbar()
 
-        fig.add_subplot(143)
+        fig.add_subplot(153)
         plt.imshow(cut_stack.max(axis=2))
         plt.title('zy')
         plt.colorbar()
 
 
-        fig.add_subplot(144)
+        fig.add_subplot(154)
         plt.plot(x, z_proj, '.-', label='cc curve')
         plt.plot(x_new, z_fit, '--', label='poly fit')
         plt.plot(x_new[np.argmax(z_fit)], max(z_fit), 'o', label='z found')
         plt.legend()
-        plt.show()
+
 
     return [x_found, y_found, z_found, good]
 
