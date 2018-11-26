@@ -400,7 +400,7 @@ def main(argsv=None, callback=None):
                                       cal_stack=cal_stack,
                                       movie=movie,
                                       roi=roi,
-                                      debug=True,
+                                      debug=False,
                                       callback=callback)
         else:
             log('Stack and movie of different sizes, running on full size')
