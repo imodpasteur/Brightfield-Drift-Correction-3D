@@ -137,7 +137,7 @@ def crop_2d_using_xy_boundaries(mask, boundaries):
     return mask[b['ymin']:b['ymax'], b['xmin']:b['xmax']]
 
 
-def crop_using_xy_boundaries(mask, boundaries,extend=0):
+def crop_using_xy_boundaries(mask:np.ndarray, boundaries:dict, extend:int=0):
     """
     :mask: any 2D or 3D dataset
     :boundaries: dict{xmin,xmax,ymin,ymax}
@@ -145,12 +145,18 @@ def crop_using_xy_boundaries(mask, boundaries,extend=0):
     """
     b = boundaries
     e = extend
+    x_max = mask.shape[-1]
+    y_max = mask.shape[-2]
+    x1 = max(0, b['xmin'] - e)
+    x2 = max(x_max, b['xmax'] + e)
+    y1 = max(0, b['ymin'] - e)
+    y2 = max(x_max, b['ymax'] + e)
     if np.ndim(mask) == 3:
-        return mask[:, b['ymin']-e:b['ymax']+e, b['xmin']-e:b['xmax']+e]
+        return mask[:, y1:y2, x1:x2]
     elif np.ndim(mask) == 2:
-        return mask[b['ymin']-e:b['ymax']+e, b['xmin']-e:b['xmax']+e]
+        return mask[y1:y2, x1:x2]
     else:
-        raise (TypeError("Please use 2d or 3d data set"))
+        raise (TypeError("Please use numpy array with 2 or 3 dimentions"))
 
 
 def highlight_feature(cal_stack):
