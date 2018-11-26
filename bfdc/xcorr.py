@@ -22,7 +22,7 @@ def get_abs_max(data):
     return np.unravel_index(np.argmax(data), data.shape)
 
 
-def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
+def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, min_xcorr = 0.5, debug=False):
     """
     Detects maximum on the stack in 3D
     Fitting 2D gaussian in xy, 4-order polynomial in z
@@ -43,10 +43,12 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
     z_px, y_px, x_px = get_abs_max(stack)
     logger.debug(f'Got absolute maximum xyz (px) {(z_px, y_px, x_px )}')
     cc_value = np.max(stack)
-    if cc_value < 0.2:
+    if cc_value < min_xcorr:
         #raise(LowXCorr("fit_gauss_3d: Cross corellation value os too low!"))
-        logger.warning("fit_gauss_3d: Cross corellation value os too low!")
+        logger.error("fit_gauss_3d: Cross corellation value os too low!")
         return [0, 0, 0, False]
+    else:
+        logger.debug(f'cc peak value={cc_value}')
 
     r, rz = radius_xy, radius_z
     z_start = np.maximum(z_px - rz, 0)
