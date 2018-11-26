@@ -8,6 +8,7 @@ import bfdc.feature as ft
 import bfdc.iotools as iot
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 class WrongCrop(Exception):
@@ -24,14 +25,14 @@ class DriftFitter:
     Crops the stack and tracks the drift
     """
 
-    def __init__(self, cal_stack, roi):
+    def __init__(self, cal_stack, roi, radius_xy=3):
         self.boundaries = ft.roi_to_boundaries(roi)
         self.dict = ft.crop_using_xy_boundaries(cal_stack, boundaries=self.boundaries)
         self.z_crop = (0, -1)
         self.x_correction = 0
         self.y_correction = 0
         self.zCenter = len(self.dict) // 2
-        self.radius_xy = 3
+        self.radius_xy = radius_xy
 
     def do_trace(self, movie, frame_list, extend_xy=5, min_xcorr=0.5, min_signal=100, debug=False, callback=None):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
@@ -64,6 +65,7 @@ class DriftFitter:
                     crop_dict = self.crop_dict()
                     cc = xcorr.cc_stack(crop_frame, crop_dict)
                     if cc.max() < min_xcorr:
+                        logger.warning(f'xcorr.max is lower than threshold {min_xcorr}')
                         self.z_crop = (0, None)
                         crop_dict = self.crop_dict()
                         cc = xcorr.cc_stack(crop_frame, crop_dict)
@@ -119,6 +121,10 @@ class DriftFitter:
         except WrongCrop as e:
             print(e)
             logging.error('Crop hits the border of the image, abort')
+            problems.append(i + 1)
+
+        except Exception as e:
+            logging.error(e)
             problems.append(i + 1)
 
         finally:
@@ -245,7 +251,6 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     print(f'Pixel size xyz: {px}')
     drift_px = np.zeros((1, 4))
 
-    fitter = DriftFitter(cal_stack, roi)
 
     try:
         n_frames = movie.n_frames
@@ -255,6 +260,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     frame_list = iot.skip_stack(n_frames, start=start, skip=skip, maxframes=max_frames)
 
     try:
+        fitter = DriftFitter(cal_stack, roi)
         drift_px = fitter.do_trace(movie, frame_list=frame_list, min_signal=min_signal, debug=debug, callback=callback)
     except KeyboardInterrupt as e:
         print(e)
@@ -378,7 +384,7 @@ def main(argsv=None, callback=None):
                                       cal_stack=cal_stack,
                                       movie=movie,
                                       roi=roi,
-                                      debug=False,
+                                      debug=True,
                                       callback=callback)
         else:
             log('Stack and movie of different sizes, running on full size')
