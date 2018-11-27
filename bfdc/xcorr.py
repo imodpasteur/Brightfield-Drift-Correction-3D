@@ -22,7 +22,7 @@ def get_abs_max(data):
     return np.unravel_index(np.argmax(data), data.shape)
 
 
-def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, debug=False):
+def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_crop = (None,None), debug=False):
     """
     Detects maximum on the stack in 3D
     Fitting 2D gaussian in xy, 4-order polynomial in z
@@ -31,7 +31,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, deb
     
     from bfdc import gaussfit
 
-    logger.debug(f'Start fit_gauss_3d with the stack shape {stack.shape}')
+    logger.debug(f'Start fit_gauss_3d with the stack shape zyx {stack.shape}')
     logger.debug(f'radius_xy={radius_xy}, radius_z={radius_z}, z_zoom={z_zoom}')
     assert np.ndim(stack) == 3, logger.error(f'fit_gauss_3d: input stack shape is wrong, expected 3 dim, got {stack.shape}')
 
@@ -41,7 +41,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, deb
         plt.show()
 
     z_px, y_px, x_px = get_abs_max(stack)
-    logger.debug(f'Got absolute maximum xyz (px) {(z_px, y_px, x_px )}')
+    logger.debug(f'Got absolute maximum xyz (px) {(x_px, y_px, z_px )}')
     cc_value = np.max(stack)
     if cc_value < min_xcorr:
         #raise(LowXCorr("fit_gauss_3d: Cross corellation value os too low!"))
@@ -51,20 +51,26 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, deb
         logger.debug(f'cc peak value={cc_value}')
 
     r, rz = radius_xy, radius_z
-    z_start = 0#np.maximum(z_px - rz, 0)
-    z_stop = None#np.minimum(z_px + rz + 2, len(stack) - 1)
-    logger.debug(f'Computing z boundaries before fit: z_start={z_start}, z_stop={z_stop}')
+    if z_crop == (None, None):
+        z_start = max(z_px - rz, 0)
+        z_stop = min(z_px + rz, len(stack))
+        z_crop = (z_start, z_stop)
+        logger.debug(f'Computing z boundaries before fit: z_start={z_start}, z_stop={z_stop}')
+    else:
+        z_start, z_stop = z_crop
+        logger.debug(f'Using z boundaries: z_start={z_start}, z_stop={z_stop}')
 
+    
     _, y_max, x_max = stack.shape
     y1 = max(0, y_px - r) 
-    y2 = min(y_max, y_px + r + 1)
+    y2 = min(y_max, y_px + r)
     x1 = max(0, x_px - r) 
-    x2 = min(x_max, x_px + r + 1)
+    x2 = min(x_max, x_px + r)
     cut_stack = stack[z_start:z_stop, y1:y2, x1:x2]
     logger.debug(f'After cutting x,y,z, we got cut_stack shape {cut_stack.shape}')
-    if cut_stack.shape != (z_stop - z_start, 2 * r + 1, 2 * r +1 ):
+    if cut_stack.shape != (z_stop - z_start, 2 * r , 2 * r  ):
         logger.error(f'Wrong cut_stack shape: expected {(z_stop - z_start, 2 * r + 1, 2 * r +1 )}, got {cut_stack.shape}')
-        return [-1, -1, -1, False]
+        return [-1, -1, -1, False, z_crop]
 
     xy_proj = cut_stack.max(axis=0)
     #z_proj = cut_stack.max(axis=(1, 2))
@@ -72,20 +78,37 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, deb
     # z_proj = cut_stack[:,r,r]
 
     #[(_min, _max, y, x, sig), good] = gaussfit.fitSymmetricGaussian(xy_proj,sigma=1)
-
-    [(_min, _max, y, x, sigy,angle,sigx), good] = gaussfit.fitEllipticalGaussian(xy_proj)
-
+    logger.debug('Fit gauss xy')
+    try:    
+        [(_min, _max, y, x, sigy,angle,sigx), good] = gaussfit.fitEllipticalGaussian(xy_proj)
+        logger.debug(f'raw xy {(x,y)}')
+    except Exception as e:
+        logger.error(e)
+        return [-1, -1, -1, False, z_crop]
     x_found = x - r + x_px
     y_found = y - r + y_px
+    logger.debug(f'xy found: {(x_found, y_found)}')
 
     # [(_min,_max,z,sig),good] = gaussfit.fitSymmetricGaussian1D(z_proj)
-    z_crop = z_proj
-    x = np.arange(len(z_crop))
-    x_new = np.linspace(0., len(z_crop), num=z_zoom * len(z_crop), endpoint=False)
-    fit = np.polyfit(x, z_crop, deg=4)
-    poly = np.poly1d(fit)
-    z_fit = poly(x_new)
-    z_found = (x_new[np.argmax(z_fit)] + z_start)
+    
+    def fit_poly_1D(z_proj, z_zoom, order=4):
+        x = np.arange(len(z_proj))
+        x_new = np.linspace(0., len(z_proj), num=z_zoom * len(z_proj), endpoint=False)
+        fit = np.polyfit(x, z_proj, deg=order)
+        poly = np.poly1d(fit)
+        z_fit = poly(x_new)
+        z_subpx = x_new[np.argmax(z_fit)] 
+        z_found = z_subpx + z_start
+        logger.debug(f'z_found = {z_subpx} + {z_start}')
+        return z_found
+    
+    z_found = fit_poly_1D(z_proj, z_zoom, order=4)
+
+
+
+
+
+
 
     if debug:
 
@@ -113,7 +136,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, deb
         plt.legend()
 
 
-    return [x_found, y_found, z_found, good]
+    return [x_found, y_found, z_found, good, z_crop]
 
 
 def cc_template(image, template, plot=False):
