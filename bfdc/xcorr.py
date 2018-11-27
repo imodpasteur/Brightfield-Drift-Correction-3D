@@ -46,7 +46,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
     if cc_value < min_xcorr:
         #raise(LowXCorr("fit_gauss_3d: Cross corellation value os too low!"))
         logger.error("fit_gauss_3d: Cross corellation value os too low!")
-        return [0, 0, 0, False]
+        return (-1, -1, -1, False, z_crop)
     else:
         logger.debug(f'cc peak value={cc_value}')
 
@@ -70,7 +70,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
     logger.debug(f'After cutting x,y,z, we got cut_stack shape {cut_stack.shape}')
     if cut_stack.shape != (z_stop - z_start, 2 * r , 2 * r  ):
         logger.error(f'Wrong cut_stack shape: expected {(z_stop - z_start, 2 * r + 1, 2 * r +1 )}, got {cut_stack.shape}')
-        return [-1, -1, -1, False, z_crop]
+        return (-1, -1, -1, False, z_crop)
 
     xy_proj = cut_stack.max(axis=0)
     #z_proj = cut_stack.max(axis=(1, 2))
@@ -84,7 +84,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         logger.debug(f'raw xy {(x,y)}')
     except Exception as e:
         logger.error(e)
-        return [-1, -1, -1, False, z_crop]
+        return (-1, -1, -1, False, z_crop)
     x_found = x - r + x_px
     y_found = y - r + y_px
     logger.debug(f'xy found: {(x_found, y_found)}')
