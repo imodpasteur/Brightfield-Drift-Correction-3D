@@ -122,52 +122,82 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         plt.legend()
 
         plt.tight_layout()
+        plt.show()
 
     return x_found, y_found, z_found, good, z_crop
 
 
 class FitPoly1D:
 
-    def __init__(self, curve, zoom, order=4, peak='max'):
+    def __init__(self, curve, zoom=10, order=4, radius=5, peak='max'):
         """
         Fits polynomial of given order to 1D curve and returns descreet absolute max/min after subsampling the fit.
-        :param curve: 1D ndarraay
-        :param zoom: upsampling
-        :param order: polynomial order to fit
-        :param peak: 'max' or 'min'
-        :return z coordinate (first dimension with the best match)
+        :curve: 1D ndarraay
+        :zoom: upsampling
+        :order: polynomial order to fit
+        :peak: 'max' or 'min'
+        :return: z coordinate (first dimension with the best match)
         """
+        logger.debug(f'Start FitPoly1D init with a curve on length {len(curve)}')
+        self.curve_full = curve
         self.curve = curve
         self.zoom = zoom
         self.order = order
-        self.peak = peak
+        self.crop = 0
 
+        if peak == 'max':
+            self.peak = np.argmax
+        elif peak == 'min':
+            self.peak = np.argmin
+        else:
+            raise(ValueError(f'peak value \'{self.peak}\' not recognized. Expected \'max\' or \'min\''))
+
+        if radius: self.do_crop(radius)
         self.interpolate()
         self.fit_poly()
         self.detect_peak()
 
+    def do_crop(self,radius):
+        logger.debug(f'FitPoly1D:do_crop')
+        index = self.peak(self.curve)
+        a = max(0, index - radius)
+        b = min(len(self.curve), index + radius)
+        self.curve = self.curve[a:b]
+        self.crop = a
+
     def interpolate(self):
-        self.x = np.arange(len(self.curve))
-        self.x_new = np.linspace(0., len(self.curve), num=self.zoom * len(self.curve), endpoint=False)
+        logger.debug(f'FitPoly1D:interpolate')
+        self.x_full = np.arange(len(self.curve_full))
+        self.x = np.arange(self.crop, self.crop + len(self.curve))
+        self.x_new = np.linspace(self.crop, len(self.curve) + self.crop, num=self.zoom * len(self.curve), endpoint=False)
 
     def fit_poly(self):
+        logger.debug(f'FitPoly1D:fit_poly')
         fit = np.polyfit(self.x, self.curve, deg=self.order)
         poly = np.poly1d(fit)
         self.ext_curve = poly(self.x_new)
 
     def detect_peak(self):
-        if self.peak == 'max':
-            self.subpx_fit = self.x_new[np.argmax(self.ext_curve)]
-        elif self.peak == 'min':
-            self.subpx_fit = self.x_new[np.argmin(self.ext_curve)]
-        else:
-            raise(ValueError(f'peak value \'{self.peak}\' not recognized. Expected \'max\' or \'min\''))
+        logger.debug(f'FitPoly1D:detect_peak')
+        self.subpx_fit = self.x_new[self.peak(self.ext_curve)]
+        logger.debug(f'FitPoly1D:detect_peak found {self.subpx_fit}')
 
-    def __call__(self):
+    def plot(self):
+        logger.debug(f'FitPoly1D:plot')
+        plt.plot(self.x_full, self.curve_full, 'o', label='raw curve')
+        plt.plot(self.x_new, self.ext_curve, '--', label='poly fit')
+        plt.plot(self.subpx_fit, self.ext_curve[self.peak(self.ext_curve)], 'o', label=f'z found{self.subpx_fit}')
+        plt.legend()
+        plt.title('FitPoly1D plot')
+        plt.show()
+
+    def __call__(self, plot=False):
+        if plot: self.plot()
+
         return self.subpx_fit
 
 
-def fit_z_MSE(frame, template, zoom, order=4):
+def fit_z_MSE(frame, template, zoom, order=4, plot=False):
     """
     Fits MSE between frame 2D and template 3D to find z minimum
     :param frame: 2D ndarraay
@@ -176,12 +206,14 @@ def fit_z_MSE(frame, template, zoom, order=4):
     :param order: polynomial order to fit
     :return z coordinate (first dimension with the best match)
     """
-
-    assert frame.ndim == 2
-    assert template.ndim  == 3
+    
+    assert np.ndim(frame) == 2, 'wrong frame shape'
+    assert np.ndim(template) == 3
     mse = (template - frame) ** 2 / len(template)
     curve = mse.mean(axis=(1, 2))
-    z_px = FitPoly1D(curve, zoom=20, order=4, peak='min')
+    fitter = FitPoly1D(curve, zoom=20, order=4, peak='min')
+    z_px = fitter(plot=plot)
+    logger.debug(f'found z {z_px}')
     return z_px
 
     
