@@ -83,7 +83,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         [(_min, _max, y, x, sigy,angle,sigx), good] = gaussfit.fitEllipticalGaussian(xy_proj)
         logger.debug(f'raw xy {(x,y)}')
     except Exception as e:
-        logger.error(e)
+        logger.error(f'Error in gaussian fit: {e}')
         return (-1, -1, -1, False, z_crop)
     x_found = x - r + x_px
     y_found = y - r + y_px
@@ -92,9 +92,9 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
     # [(_min,_max,z,sig),good] = gaussfit.fitSymmetricGaussian1D(z_proj)
     
     polyfit = FitPoly1D(z_proj, z_zoom, order=4)
-    z_subpx = polyfit()
+    z_subpx = polyfit(plot=debug)
     z_found = z_subpx + z_start
-    logger.debug(f'z_found = {z_subpx} + {z_start}')
+    logger.debug(f'z_found = {z_subpx} + {z_start} = {z_found}')
 
 
     if debug:
@@ -115,11 +115,11 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         plt.title('zy')
         plt.colorbar()
 
-        fig.add_subplot(144)
-        plt.plot(polyfit.x + z_start, z_proj, 'o', label='cc curve')
-        plt.plot(polyfit.x_new + z_start, polyfit.ext_curve, '--', label='poly fit')
-        plt.plot(polyfit.x_new[np.argmax(polyfit.ext_curve)]+ z_start, max(polyfit.ext_curve), 'o', label='z found')
-        plt.legend()
+        #fig.add_subplot(144)
+        #plt.plot(polyfit.x + z_start, z_proj, 'o', label='cc curve')
+        #plt.plot(polyfit.x_new + z_start, polyfit.ext_curve, '--', label='poly fit')
+        #plt.plot(polyfit.x_new[np.argmax(polyfit.ext_curve)]+ z_start, max(polyfit.ext_curve), 'o', label='z found')
+        #plt.legend()
 
         plt.tight_layout()
         plt.show()
@@ -169,7 +169,11 @@ class FitPoly1D:
         logger.debug(f'FitPoly1D:interpolate')
         self.x_full = np.arange(len(self.curve_full))
         self.x = np.arange(self.crop, self.crop + len(self.curve))
-        self.x_new = np.linspace(self.crop, len(self.curve) + self.crop, num=self.zoom * len(self.curve), endpoint=False)
+        self.x_new = np.linspace(self.crop, 
+                                len(self.curve) + self.crop, 
+                                num=self.zoom * len(self.curve), 
+                                endpoint=False,
+                                dtype='f')
 
     def fit_poly(self):
         logger.debug(f'FitPoly1D:fit_poly')
@@ -197,16 +201,17 @@ class FitPoly1D:
         return self.subpx_fit
 
 
-def fit_z_MSE(frame, template, zoom, order=4, plot=False):
+def fit_z_MSE(frame:np.ndarray, template:np.ndarray, zoom:int, order:int=4, plot:bool=False) -> float:
     """
     Fits MSE between frame 2D and template 3D to find z minimum
-    :param frame: 2D ndarraay
-    :param template: 3D array
-    :param zoom: intepropation for the first dimension
-    :param order: polynomial order to fit
-    :return z coordinate (first dimension with the best match)
+    :frame: 2D ndarraay
+    :template: 3D array
+    :zoom: intepropation for the first dimension
+    :order: polynomial order to fit
+    :plot: bool, will show the curve and fit
+    :return: z coordinate (first dimension with the best match)
     """
-    
+    z_px = 0.0
     assert np.ndim(frame) == 2, 'wrong frame shape'
     assert np.ndim(template) == 3
     mse = (template - frame) ** 2 / len(template)
