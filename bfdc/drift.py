@@ -28,19 +28,20 @@ class DriftFitter:
     Crops the stack and tracks the drift
     """
 
-    def __init__(self, cal_stack, roi, radius_xy=3, radius_z=8):
+    def __init__(self, cal_stack, roi, radius_xy=3, radius_z=8, smooth_dict=1):
         self.roi = roi
         self.boundaries = ft.roi_to_boundaries(roi)
         self.dict = ft.crop_using_xy_boundaries(cal_stack, boundaries=self.boundaries)
-        self.dict = ft.gf(self.dict, 1)
-        self.z_crop = (0, -1)
+        self.dict = ft.gf(self.dict, smooth_dict)
+        logger.debug(f'smooth dict with {smooth_dict}')
+        self.z_crop = (None, None)
         self.x_correction = 0
         self.y_correction = 0
         self.zCenter = len(self.dict) // 2
         self.radius_xy = radius_xy
         self.radius_z = radius_z
 
-    def do_trace(self, movie, frame_list, extend_xy=5, min_xcorr=0.5, min_signal=100, debug=False, callback=None):
+    def do_trace(self, movie, frame_list, extend_xy=5, min_xcorr=0.5, z_zoom=20, min_signal=100, debug=False, callback=None):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
         # for i,frame in enumerate(movie):
         # crop frame with extended by 5px boundaries
@@ -52,7 +53,7 @@ class DriftFitter:
         b = self.boundaries
         xc = np.mean([b["xmax"], -b["xmin"]])
         yc = np.mean([b["ymax"], -b["ymin"]])
-        out = np.empty((0, 4))
+        out = np.empty((0, 5))
         x_, y_, z_ = 0, 0, 0
         total = len(frame_list)
         problems = []
@@ -61,6 +62,8 @@ class DriftFitter:
         try:
             for i, f in enumerate(frame_list):
                 frame = movie[f]
+                good = False
+                z = 0
                 logger.debug(f'\nOpen frame {f+1}')
                 frame_mean = frame.mean()
                 if frame_mean < min_signal:
@@ -70,60 +73,86 @@ class DriftFitter:
                     logger.debug(f'Cropping frame {crop_frame.shape}')
                     if min(crop_frame.shape) == 0:
                         raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
-                    crop_dict = self.crop_dict()
+                    crop_dict = self.dict
                     cc = xcorr.cc_stack(crop_frame, crop_dict)
                     if cc.max() < min_xcorr:
                         logger.warning(f'xcorr.max is lower than threshold {min_xcorr}')
                         self.z_crop = (0, None)
                         logger.info('Expanding z limits')
                         crop_dict = self.crop_dict()
+                        logger.debug('run cc')
                         cc = xcorr.cc_stack(crop_frame, crop_dict)
                         
                     if cc.max() < min_xcorr:
                         logger.warning(f'xcorr value is still lower than {min_xcorr}, skipping the frame')
                         problems.append(f + 1)
                     else:
-                    # out.append(cc_max(cc) limits)
+                        logger.debug('Fit 3D')
+                        result = 'empty'
                         try:
-                            x, y, z, good = xcorr.fit_gauss_3d(cc, radius_xy=self.radius_xy, radius_z=radius_z, z_zoom=20,
-                                                            debug=debug)
+                            result = xcorr.fit_gauss_3d(cc,
+                                                        radius_xy=self.radius_xy,
+                                                        radius_z=self.radius_z,
+                                                        z_zoom=z_zoom,
+                                                        z_crop=self.z_crop,
+                                                        debug=debug)
+                            x, y, z, good, z1 = result
+                            self.z_crop = z1
 
-                        except ValueError:
-                            raise (ValueError('unable to unpack fit_gauss_3d output'))
+                        except ValueError as e:
+                            print(f'ValueError: {e}')
+                            raise (ValueError(f'unable to unpack fit_gauss_3d output {result}'))
 
-                        except [xcorr.LowXCorr, BadGaussFit]:
+                        except (xcorr.LowXCorr, BadGaussFit):
                             logger.warning(
                                 f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
                             # if len(out):
                             #    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
                             problems.append(f + 1)
-
+                        """
                         except Exception as e:
-                            print(e)
+                            print(f'Unhandled exception {e}')
                             traceback.print_stack()
                             problems.append(f + 1)
+                        """
+                        logger.debug('crop frame without extension')
+                        crop_frame_same = ft.crop_using_xy_boundaries(frame, b)
+
+                        logger.debug('Launch fit_z_MSE')
+                        z_MSE = 0.0
+                        try:
+                            z_MSE = xcorr.fit_z_MSE(frame=crop_frame_same, 
+                                                template=self.dict, 
+                                                zoom=z_zoom, 
+                                                order=4,
+                                                plot=True)
+                            logging.debug(f'Fitted MSE z = {z_MSE}')
+                        except Exception as e:
+                            logger.error(f'Error with xcorr.fit_z_MSE: {e}')
+                            traceback.print_tb()
 
                         if not good:
                             logger.warning(f'Bad fit in frame {f+1}')
                             problems.append(f + 1)
                             self.boundaries = ft.roi_to_boundaries(self.roi)
-                            self.z_crop = (0, -1)
-                            self.x_correction = 0
-                            self.y_correction = 0
+                            #self.z_crop = (0, -1)
+                            #self.x_correction = 0
+                            #self.y_correction = 0
 
                         else:
-                            z_ = z + self.z_crop[0] - self.zCenter
+                            #z_ = z + self.z_crop[0] - self.zCenter
+                            z_ = z - self.zCenter
                             x_ = x + self.x_correction - xc - self.radius_xy
                             y_ = y + self.y_correction - yc - self.radius_xy
                             logger.debug(f"x_px = {x}, y_px = {y}, z_px = {z}, x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
-                            out = np.append(out, np.array([f + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
+                            out = np.append(out, np.array([f + 1, x_, y_, z_, z_MSE]).reshape((1, 4)), axis=0)
                             logging.debug(f'found xyz {x,y,z}')
                             if debug:
                                 #plt.add_subplot(155)
                                 iot.plot_drift(out * [1,110,110,100])
-                                #plt.show()
-                            self.update_z_crop(z + self.z_crop[0])
+                                plt.show()
+                            #self.update_z_crop(z)
                             self.update_xy_boundaries(x, y, extend_xy)
 
                 print(f'\rProcessed {f+1}/{total} frames, found {len(out)} BF frames', end=' ')
@@ -283,7 +312,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     frame_list = iot.skip_stack(n_frames, start=start, skip=skip, maxframes=max_frames)
 
     try:
-        fitter = DriftFitter(cal_stack, roi)
+        fitter = DriftFitter(cal_stack, roi, radius_xy=5, radius_z=8)
         drift_px = fitter.do_trace(movie, frame_list=frame_list, min_signal=min_signal, debug=debug, callback=callback)
     except KeyboardInterrupt as e:
         print(e)
@@ -407,7 +436,7 @@ def main(argsv=None, callback=None):
                                       cal_stack=cal_stack,
                                       movie=movie,
                                       roi=roi,
-                                      debug=False,
+                                      debug=True,
                                       callback=callback)
         else:
             log('Stack and movie of different sizes, running on full size')

@@ -260,7 +260,7 @@ def save_zola_table(table, path):
 
 
 def plot_drift(table):
-    f = plt.figure(dpi=300)
+    f = plt.figure(figsize=(6,4), dpi=300)
     plt.plot(table[:, 0], table[:, 1:])
     plt.xlabel('frame')
     plt.ylabel('Drift, nm')
