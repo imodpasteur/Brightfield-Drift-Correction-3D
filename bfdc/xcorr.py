@@ -91,7 +91,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
 
     # [(_min,_max,z,sig),good] = gaussfit.fitSymmetricGaussian1D(z_proj)
     
-    polyfit = fit_poly_1D(z_proj, z_zoom, order=4)
+    polyfit = FitPoly1D(z_proj, z_zoom, order=4)
     z_subpx = polyfit()
     z_found = z_subpx + z_start
     logger.debug(f'z_found = {z_subpx} + {z_start}')
@@ -126,7 +126,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
     return x_found, y_found, z_found, good, z_crop
 
 
-class fit_poly_1D:
+class FitPoly1D:
 
     def __init__(self, curve, zoom, order=4, peak='max'):
         """
@@ -166,6 +166,7 @@ class fit_poly_1D:
     def __call__(self):
         return self.subpx_fit
 
+
 def fit_z_MSE(frame, template, zoom, order=4):
     """
     Fits MSE between frame 2D and template 3D to find z minimum
@@ -180,7 +181,7 @@ def fit_z_MSE(frame, template, zoom, order=4):
     assert template.ndim  == 3
     mse = (template - frame) ** 2 / len(template)
     curve = mse.mean(axis=(1, 2))
-    z_px = fit_poly_1D(curve, zoom=20, order=4, peak='min')
+    z_px = FitPoly1D(curve, zoom=20, order=4, peak='min')
     return z_px
 
     
