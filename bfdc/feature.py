@@ -9,6 +9,10 @@ import matplotlib.pyplot as plt
 from bfdc.xcorr import get_abs_max
 from read_roi import read_roi_file
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
+
 
 class FeatureExtractor:
     """
@@ -134,6 +138,8 @@ def crop_using_xy_boundaries(mask:np.ndarray, boundaries:dict, extend:int=0):
     :return: cropped mask
     """
     b = boundaries
+    logger.debug(f'Boundaries: {b}')
+    logger.debug(f'Image shape {mask.shape}')
     e = extend
     x_max = mask.shape[-1]
     y_max = mask.shape[-2]
@@ -141,6 +147,7 @@ def crop_using_xy_boundaries(mask:np.ndarray, boundaries:dict, extend:int=0):
     x2 = min(x_max, b['xmax'] + e)
     y1 = max(0, b['ymin'] - e)
     y2 = min(x_max, b['ymax'] + e)
+    logger.debug(f'Boundaries with limits and extension ({e}): xmin:xmax, ymin:ymax {x1}:{x2}, {y1},{y2}')
     if np.ndim(mask) == 3:
         return mask[:, y1:y2, x1:x2]
     elif np.ndim(mask) == 2:
