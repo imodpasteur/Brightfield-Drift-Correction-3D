@@ -91,54 +91,99 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
 
     # [(_min,_max,z,sig),good] = gaussfit.fitSymmetricGaussian1D(z_proj)
     
-    def fit_poly_1D(z_proj, z_zoom, order=4):
-        x = np.arange(len(z_proj))
-        x_new = np.linspace(0., len(z_proj), num=z_zoom * len(z_proj), endpoint=False)
-        fit = np.polyfit(x, z_proj, deg=order)
-        poly = np.poly1d(fit)
-        z_fit = poly(x_new)
-        z_subpx = x_new[np.argmax(z_fit)] 
-        z_found = z_subpx + z_start
-        logger.debug(f'z_found = {z_subpx} + {z_start}')
-        return z_found
-    
-    z_found = fit_poly_1D(z_proj, z_zoom, order=4)
-
-
-
-
-
+    polyfit = fit_poly_1D(z_proj, z_zoom, order=4)
+    z_subpx = polyfit()
+    z_found = z_subpx + z_start
+    logger.debug(f'z_found = {z_subpx} + {z_start}')
 
 
     if debug:
 
-        fig = plt.figure(figsize=(10,3))
-        fig.add_subplot(151)
+        fig = plt.figure(figsize=(15,3))
+        fig.add_subplot(141)
         plt.imshow(xy_proj)
         plt.title('xy')
         plt.colorbar()
 
-        fig.add_subplot(152)
+        fig.add_subplot(142)
         plt.imshow(cut_stack.max(axis=1))
         plt.title('zx')
         plt.colorbar()
 
-        fig.add_subplot(153)
+        fig.add_subplot(143)
         plt.imshow(cut_stack.max(axis=2))
         plt.title('zy')
         plt.colorbar()
 
-
-        fig.add_subplot(154)
-        plt.plot(x, z_proj, '.-', label='cc curve')
-        plt.plot(x_new, z_fit, '--', label='poly fit')
-        plt.plot(x_new[np.argmax(z_fit)], max(z_fit), 'o', label='z found')
+        fig.add_subplot(144)
+        plt.plot(polyfit.x + z_start, z_proj, 'o', label='cc curve')
+        plt.plot(polyfit.x_new + z_start, polyfit.ext_curve, '--', label='poly fit')
+        plt.plot(polyfit.x_new[np.argmax(polyfit.ext_curve)]+ z_start, max(polyfit.ext_curve), 'o', label='z found')
         plt.legend()
 
+        plt.tight_layout()
 
-    return [x_found, y_found, z_found, good, z_crop]
+    return x_found, y_found, z_found, good, z_crop
 
 
+class fit_poly_1D:
+
+    def __init__(self, curve, zoom, order=4, peak='max'):
+        """
+        Fits polynomial of given order to 1D curve and returns descreet absolute max/min after subsampling the fit.
+        :param curve: 1D ndarraay
+        :param zoom: upsampling
+        :param order: polynomial order to fit
+        :param peak: 'max' or 'min'
+        :return z coordinate (first dimension with the best match)
+        """
+        self.curve = curve
+        self.zoom = zoom
+        self.order = order
+        self.peak = peak
+
+        self.interpolate()
+        self.fit_poly()
+        self.detect_peak()
+
+    def interpolate(self):
+        self.x = np.arange(len(self.curve))
+        self.x_new = np.linspace(0., len(self.curve), num=self.zoom * len(self.curve), endpoint=False)
+
+    def fit_poly(self):
+        fit = np.polyfit(self.x, self.curve, deg=self.order)
+        poly = np.poly1d(fit)
+        self.ext_curve = poly(self.x_new)
+
+    def detect_peak(self):
+        if self.peak == 'max':
+            self.subpx_fit = self.x_new[np.argmax(self.ext_curve)]
+        elif self.peak == 'min':
+            self.subpx_fit = self.x_new[np.argmin(self.ext_curve)]
+        else:
+            raise(ValueError(f'peak value \'{self.peak}\' not recognized. Expected \'max\' or \'min\''))
+
+    def __call__(self):
+        return self.subpx_fit
+
+def fit_z_MSE(frame, template, zoom, order=4):
+    """
+    Fits MSE between frame 2D and template 3D to find z minimum
+    :param frame: 2D ndarraay
+    :param template: 3D array
+    :param zoom: intepropation for the first dimension
+    :param order: polynomial order to fit
+    :return z coordinate (first dimension with the best match)
+    """
+
+    assert frame.ndim == 2
+    assert template.ndim  == 3
+    mse = (template - frame) ** 2 / len(template)
+    curve = mse.mean(axis=(1, 2))
+    z_px = fit_poly_1D(curve, zoom=20, order=4, peak='min')
+    return z_px
+
+    
 def cc_template(image, template, plot=False):
     try:
         cc = match_template(image, template, pad_input=True)
