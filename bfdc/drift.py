@@ -146,7 +146,7 @@ class DriftFitter:
                             y_ = y + self.y_correction - yc - self.radius_xy
                             logger.debug(f"x_px = {x}, y_px = {y}, z_px = {z}, x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
-                            out = np.append(out, np.array([f + 1, x_, y_, z_, z_MSE]).reshape((1, 4)), axis=0)
+                            out = np.append(out, np.array([f + 1, x_, y_, z_, z_MSE]).reshape((1, 5)), axis=0)
                             logging.debug(f'found xyz {x,y,z}')
                             if debug:
                                 #plt.add_subplot(155)
