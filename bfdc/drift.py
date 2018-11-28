@@ -35,13 +35,19 @@ class DriftFitter:
         self.dict = ft.gf(self.dict, smooth_dict)
         logger.debug(f'smooth dict with {smooth_dict}')
         self.z_crop = (None, None)
-        self.x_correction = 0
-        self.y_correction = 0
         self.zCenter = len(self.dict) // 2
         self.radius_xy = radius_xy
         self.radius_z = radius_z
 
-    def do_trace(self, movie, frame_list, extend_xy=5, min_xcorr=0.5, z_zoom=20, min_signal=100, debug=False, callback=None):
+    def do_trace(self, 
+                movie, 
+                frame_list, 
+                extend_xy=5, 
+                min_xcorr=0.5, 
+                z_zoom=20, 
+                min_signal=100, 
+                debug=False, 
+                callback=None):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
         # for i,frame in enumerate(movie):
         # crop frame with extended by 5px boundaries
@@ -53,8 +59,15 @@ class DriftFitter:
         b = self.boundaries
         xc = np.mean([b["xmax"], -b["xmin"]])
         yc = np.mean([b["ymax"], -b["ymin"]])
-        out = np.empty((0, 5))
         x_, y_, z_ = 0, 0, 0
+        z_MSE_ = 0
+        frame_num = 0
+        self.x_correction = 0
+        self.y_correction = 0
+
+        data_save = [frame_num, x_, y_, z_, z_MSE_, self.x_correction, self.y_correction]
+
+        out = np.empty((0, len(data_save)))
         total = len(frame_list)
         problems = []
         i = 0
@@ -70,6 +83,7 @@ class DriftFitter:
                     logger.debug('Skip frame due to low mean signal')
                 else:
                     crop_frame = ft.crop_using_xy_boundaries(frame, b, extend=extend_xy)
+                    crop_frame = ft.gf(input=crop_frame, sigma=)
                     logger.debug(f'Cropping frame {crop_frame.shape}')
                     if min(crop_frame.shape) == 0:
                         raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
@@ -104,8 +118,7 @@ class DriftFitter:
                             raise (ValueError(f'unable to unpack fit_gauss_3d output {result}'))
 
                         except (xcorr.LowXCorr, BadGaussFit):
-                            logger.warning(
-                                f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
+                            logger.warning(f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
                             # if len(out):
                             #    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
                             problems.append(f + 1)
@@ -122,10 +135,10 @@ class DriftFitter:
                         z_MSE = 0.0
                         try:
                             z_MSE = xcorr.fit_z_MSE(frame=crop_frame_same, 
-                                                template=self.dict, 
-                                                zoom=z_zoom, 
-                                                order=4,
-                                                plot=True)
+                                                    template=self.dict, 
+                                                    zoom=z_zoom, 
+                                                    order=4,
+                                                    plot=debug)
                             logging.debug(f'Fitted MSE z = {z_MSE}')
                         except Exception as e:
                             logger.error(f'Error with xcorr.fit_z_MSE: {e}')
@@ -144,14 +157,20 @@ class DriftFitter:
                             z_ = z - self.zCenter
                             x_ = x + self.x_correction - xc - self.radius_xy
                             y_ = y + self.y_correction - yc - self.radius_xy
+                            z_MSE_ = z_MSE - self.zCenter
                             logger.debug(f"x_px = {x}, y_px = {y}, z_px = {z}, x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
-                            out = np.append(out, np.array([f + 1, x_, y_, z_, z_MSE]).reshape((1, 5)), axis=0)
+                            out = np.append(out, np.array([f + 1, x_, y_, z_, z_MSE_, self.x_correction, self.y_correction]).reshape((1, len(data_save))), axis=0)
                             logging.debug(f'found xyz {x,y,z}')
                             if debug:
                                 #plt.add_subplot(155)
-                                iot.plot_drift(out * [1,110,110,100])
-                                plt.show()
+                                try:
+                                    iot.plot_drift(out)
+                                    plt.show()
+                                except Exception as e:  
+                                    logger.error(f'Error in debug plot: {e}')
+                                    traceback.print_exc()
+                                    return
                             #self.update_z_crop(z)
                             self.update_xy_boundaries(x, y, extend_xy)
 
@@ -293,7 +312,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     """
     print("Tracing drift using ROI")
     if callback: callback({"Message": "Tracing drift using ROI"})
-    px = [args.xypixel, args.xypixel, args.zstep]
+    px = [args.xypixel, args.xypixel, args.zstep, args.zstep, args.xypixel, args.xypixel]
     skip = args.skip
     start = args.start
     max_frames = args.nframes
@@ -318,7 +337,13 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
         print(e)
 
     drift_nm = drift_px.copy()
-    drift_nm[:, 1:] = drift_px[:, 1:] * px
+    try:
+        drift_nm[:, 1:] = drift_px[:, 1:] * px
+    except ValueError:
+        dif = len(drift_px[0,1:]) - len(px)
+        [px.append(1) for _ in range(dif)]
+        logger.error(f'trace_drift_auto: Unable to apply pixel size: error in brodcasting, used 1 for the last {dif} columns')
+        drift_nm[:, 1:] = drift_px[:, 1:] * px
     #drift_nm = iot.update_frame_number(drift_nm, start, skip)
     return drift_nm
 
@@ -330,11 +355,11 @@ def move_drift_to_zero(drift_nm, ref_average=10):
     :param ref_average: how many frames to average to get zero
     :return: shifted table
     """
-    assert drift_nm.shape[1] == 4
+    assert drift_nm.ndim == 2
     assert drift_nm.shape[0] > 0
     drift_ref = drift_nm[0:ref_average, :].mean(axis=0)
     drift_ref[0] = 0  # frame number should be 0 for reference
-    drift_ = drift_nm - drift_ref.reshape((1, 4))
+    drift_ = drift_nm - drift_ref.reshape((1, drift_nm.shape[1]))
     return drift_
 
 
@@ -436,7 +461,7 @@ def main(argsv=None, callback=None):
                                       cal_stack=cal_stack,
                                       movie=movie,
                                       roi=roi,
-                                      debug=True,
+                                      debug=False,
                                       callback=callback)
         else:
             log('Stack and movie of different sizes, running on full size')
