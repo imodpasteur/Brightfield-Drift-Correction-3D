@@ -46,6 +46,7 @@ class DriftFitter:
                 min_xcorr=0.5, 
                 z_zoom=20, 
                 min_signal=100, 
+                smooth_movie=1,
                 debug=False, 
                 callback=None):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
@@ -83,7 +84,7 @@ class DriftFitter:
                     logger.debug('Skip frame due to low mean signal')
                 else:
                     crop_frame = ft.crop_using_xy_boundaries(frame, b, extend=extend_xy)
-                    crop_frame = ft.gf(input=crop_frame, sigma=)
+                    crop_frame = ft.gf(input=crop_frame, sigma=smooth_movie)
                     logger.debug(f'Cropping frame {crop_frame.shape}')
                     if min(crop_frame.shape) == 0:
                         raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
