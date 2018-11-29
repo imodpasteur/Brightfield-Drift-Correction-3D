@@ -1,6 +1,6 @@
 #!/Users/andrey/anaconda3/envs/pydrift-test/python3
 
-from unittest import TestCase
+from unittest import TestCase, skip
 import numpy as np
 from bfdc.xcorr import FitPoly1D
 
@@ -34,6 +34,7 @@ class TestFitPoly1D(TestCase):
         result = fit()
         self.assertAlmostEqual(result, expected, delta=1/zoom, msg=f'result = {result}, expected {expected}')
 
+    @skip
     def test_parabola_min_plot(self):
         indices = np.arange(20)
         expected = 10
