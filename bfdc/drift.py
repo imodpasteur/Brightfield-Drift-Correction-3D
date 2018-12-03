@@ -92,7 +92,7 @@ class DriftFitter:
                     cc = xcorr.cc_stack(crop_frame, crop_dict)
                     if cc.max() < min_xcorr:
                         logger.warning(f'xcorr.max is lower than threshold {min_xcorr}')
-                        self.z_crop = (0, None)
+                        #self.z_crop = (0, None)
                         logger.info('Expanding z limits')
                         crop_dict = self.crop_dict()
                         logger.debug('run cc')
