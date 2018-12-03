@@ -11,7 +11,7 @@ mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class WrongCrop(Exception):
@@ -165,7 +165,7 @@ class DriftFitter:
                             #self.update_z_crop(z)
                             self.update_xy_boundaries(x, y, extend_xy)
 
-                print(f'\rProcessed {f+1}/{total} frames, found {len(out)} BF frames', end=' ')
+                print(f'\rProcessed {i+1}/{total} frames (frame {f+1}), found {len(out)} BF frames', end=' ')
                 sys.stdout.flush()
 
                 if callback and i%10 == 0:
@@ -322,7 +322,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     frame_list = iot.skip_stack(n_frames, start=start, skip=skip, maxframes=max_frames)
 
     try:
-        fitter = DriftFitter(cal_stack, roi, radius_xy=5, radius_z=10)
+        fitter = DriftFitter(cal_stack, roi, radius_xy=8, radius_z=10)
         drift_px = fitter.do_trace(movie, 
                                     frame_list=frame_list, 
                                     min_signal=min_signal, 
