@@ -28,7 +28,7 @@ class DriftFitter:
     Crops the stack and tracks the drift
     """
 
-    def __init__(self, cal_stack, roi, radius_xy=3, radius_z=8, smooth_dict=1):
+    def __init__(self, cal_stack, roi, radius_xy=3, radius_z=10, smooth_dict=1):
         self.roi = roi
         self.boundaries = ft.roi_to_boundaries(roi)
         self.dict = ft.crop_using_xy_boundaries(cal_stack, boundaries=self.boundaries)
@@ -134,17 +134,7 @@ class DriftFitter:
 
                         logger.debug('Launch fit_z_MSE')
                         z_MSE = 0.0
-                        try:
-                            z_MSE = xcorr.fit_z_MSE(frame=crop_frame_same, 
-                                                    template=self.dict, 
-                                                    zoom=z_zoom, 
-                                                    order=4,
-                                                    plot=debug)
-                            logging.debug(f'Fitted MSE z = {z_MSE}')
-                        except Exception as e:
-                            logger.error(f'Error with xcorr.fit_z_MSE: {e}')
-                            traceback.print_tb()
-
+                        
                         if not good:
                             logger.warning(f'Bad fit in frame {f+1}')
                             problems.append(f + 1)
@@ -224,7 +214,7 @@ class DriftFitter:
         if abs(xdif_) > 0.8 or abs(ydif_) > 0.8:
             xdif = int(np.round(xdif_, decimals=0))
             ydif = int(np.round(ydif_, decimals=0))
-            logging.debug(f'moving xy boundary by {xdif},{ydif}')
+            logger.debug(f'moving xy boundary by {xdif},{ydif}')
             b['xmin'] += xdif
             b['xmax'] += xdif
             self.x_correction += xdif
@@ -332,8 +322,12 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     frame_list = iot.skip_stack(n_frames, start=start, skip=skip, maxframes=max_frames)
 
     try:
-        fitter = DriftFitter(cal_stack, roi, radius_xy=5, radius_z=8)
-        drift_px = fitter.do_trace(movie, frame_list=frame_list, min_signal=min_signal, debug=debug, callback=callback)
+        fitter = DriftFitter(cal_stack, roi, radius_xy=5, radius_z=10)
+        drift_px = fitter.do_trace(movie, 
+                                    frame_list=frame_list, 
+                                    min_signal=min_signal, 
+                                    debug=debug, 
+                                    callback=callback)
     except KeyboardInterrupt as e:
         print(e)
 
