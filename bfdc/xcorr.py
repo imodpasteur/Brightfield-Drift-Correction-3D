@@ -73,7 +73,9 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         return (-1, -1, -1, False, z_crop)
 
     xy_proj = cut_stack.max(axis=0)
-    z_proj = cut_stack.mean(axis=(1, 2))
+    zx_proj = cut_stack.max(axis=1)
+    zy_proj = cut_stack.max(axis=2)
+    z_proj = cut_stack.max(axis=(1, 2))
     #z_proj = cut_stack[:,r].max(axis=1) #ignore y
     #z_proj = cut_stack[:,r,r] #ignore xy
     # z_proj = cut_stack[:,r,r]
@@ -81,22 +83,34 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
     #[(_min, _max, y, x, sig), good] = gaussfit.fitSymmetricGaussian(xy_proj,sigma=1)
     logger.debug('Fit gauss xy')
     try:    
-        [(_min, _max, y, x, sigy,angle,sigx), good] = gaussfit.fitEllipticalGaussian(xy_proj)
-        logger.debug(f'raw xy {(x,y)}')
+        #[(_min, _max, y, x, sigy,angle,sigx), good] = gaussfit.fitEllipticalGaussian(xy_proj)
+        #logger.debug(f'raw xy {(x,y)}')
+        [result, good] = gaussfit.fitEllipticalGaussian3D(cut_stack)
+        background, height, z, y, x, el_x, el_y, el_z, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z = result
+        logger.debug(f'raw xyz {(x, y, z)}')
     except Exception as e:
         logger.error(f'Error in gaussian fit: {e}')
+        logger.error(f'result: {result}')
         return (-1, -1, -1, False, z_crop)
     x_found = x - r + x_px
     y_found = y - r + y_px
     logger.debug(f'xy found: {(x_found, y_found)}')
 
+    #logger.debug('Fit gauss with ramp zx')
+    #[(_min, _max, z, x, sigy, angle, sigx, ramp_x, ramp_y), good] = gaussfit.fitFixedEllipticalGaussianOnRamp(zy_proj)
+    #z_found = z + z_start
+    #logger.debug(f'Found raw xy {(x,y)}, z {z_found}')
     # [(_min,_max,z,sig),good] = gaussfit.fitSymmetricGaussian1D(z_proj)
     
-    polyfit = FitPoly1D(z_proj, z_zoom, order=4)
-    z_subpx = polyfit(plot=debug)
-    z_found = z_subpx + z_start
-    logger.debug(f'z_found = {z_subpx} + {z_start} = {z_found}')
-
+    #polyfit = FitPoly1D(z_proj, z_zoom, order=4)
+    #z_subpx = polyfit(plot=debug)
+    #z_found = z_subpx + z_start
+    #logger.debug(f'z_found = {z_subpx} + {z_start} = {z_found}')
+    #logger.debug('fit gauss 1d')
+    #[params, good] = gaussfit.fitSymmetricGaussian1DonRamp(z_proj)
+    #(background, height, center_x, width, ramp) = params
+    z_found = z + z_start
+    logger.debug(f'Found  z {z_found}')
 
     if debug:
 
@@ -107,14 +121,19 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         plt.colorbar()
 
         fig.add_subplot(142)
-        plt.imshow(cut_stack.max(axis=1))
+        plt.imshow(zx_proj)
         plt.title('zx')
         plt.colorbar()
 
         fig.add_subplot(143)
-        plt.imshow(cut_stack.max(axis=2))
+        plt.imshow(zy_proj)
         plt.title('zy')
         plt.colorbar()
+
+        #fig.add_subplot(144)
+        #plt.plot(z_proj, 'o', label='cc curve')
+        #plt.plot(gaussfit.symmetricGaussian1DonRamp(*params)(np.arange(len(z_proj))), '--', label='gauss fit')
+        #plt.legend()
 
         #fig.add_subplot(144)
         #plt.plot(polyfit.x + z_start, z_proj, 'o', label='cc curve')

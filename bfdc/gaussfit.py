@@ -32,6 +32,7 @@ def fitAFunctionLS(data, params, fn):
         good = False
     return [result, good]
 
+
 def fitAFunctionMLE(data, params, fn):
     """
     MLE fitting, following Laurence and Chromy.
@@ -82,6 +83,37 @@ def ellipticalGaussian(background, height, center_x, center_y, a, b, c):
 def ellipticalGaussianOnRamp(background, height, center_x, center_y, a, b, c, ramp_x, ramp_y):
     bg = lambda x, y: background + ramp_x * x + ramp_y * y 
     return lambda x,y: bg(x,y) + height*numpy.exp(-(a*(center_x-x)**2 + b*(center_x-x)*(center_y-y) + c*(center_y-y)**2))
+
+def ellipticalGaussian3dOnRamp(background, height, center_z, center_y, center_x, el_z, el_y, el_x, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z):
+    return lambda z, y, x: background + \
+                            ramp_x * x + ramp_y * y + ramp_z * z + \
+                            height * numpy.exp(-(el_x * (center_x - x) ** 2 + \
+                                                 el_y * (center_y - y) ** 2 + \
+                                                 el_z * (center_z - z) ** 2 + \
+                                                an_xy * (center_x - x) * (center_y - y) + \
+                                                an_xz * (center_x - x) * (center_z - z) + \
+                                                an_yz * (center_y - y) * (center_z - z))) \
+
+def fitEllipticalGaussian3D(data:numpy.ndarray):
+    """
+    Data is assumed centered on the gaussian and of size roughly 2x the width.
+    """
+    assert data.ndim == 3
+    params = [data.min(),
+              data.max(),
+              0.5 * data.shape[0],
+              0.5 * data.shape[1],
+              0.5 * data.shape[2],
+              4.0 / data.shape[0],
+              4.0 / data.shape[1],
+              4.0 / data.shape[2],
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0]
+    return fitAFunctionLS(data, params, ellipticalGaussian3dOnRamp)
 
 def fitFixedSymmetricGaussian(data, a_sigma):
     """
