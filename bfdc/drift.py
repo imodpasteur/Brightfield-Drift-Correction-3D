@@ -68,7 +68,7 @@ class DriftFitter:
         self.y_correction = 0
         self.fit_params = None
 
-        data_save = [frame_num, x_, y_, z_, z_MSE_, self.x_correction, self.y_correction]
+        data_save = [frame_num, x_, y_, z_, self.x_correction, self.y_correction]
 
         out = np.empty((0, len(data_save)))
         total = len(frame_list)
@@ -155,7 +155,7 @@ class DriftFitter:
                             z_MSE_ = z_MSE - self.zCenter
                             logger.debug(f"x_px = {x}, y_px = {y}, z_px = {z}, x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
-                            out = np.append(out, np.array([f + 1, x_, y_, z_, z_MSE_, self.x_correction, self.y_correction]).reshape((1, len(data_save))), axis=0)
+                            out = np.append(out, np.array([f + 1, x_, y_, z_, self.x_correction, self.y_correction]).reshape((1, len(data_save))), axis=0)
                             logging.debug(f'found xyz {x,y,z}')
                             if debug:
                                 #plt.add_subplot(155)
