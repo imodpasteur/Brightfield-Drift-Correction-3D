@@ -11,7 +11,8 @@ mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+#logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class WrongCrop(Exception):
@@ -65,6 +66,7 @@ class DriftFitter:
         frame_num = 0
         self.x_correction = 0
         self.y_correction = 0
+        self.fit_params = None
 
         data_save = [frame_num, x_, y_, z_, z_MSE_, self.x_correction, self.y_correction]
 
@@ -110,10 +112,9 @@ class DriftFitter:
                                                         radius_z=self.radius_z,
                                                         z_zoom=z_zoom,
                                                         z_crop=self.z_crop,
+                                                        fit_init=self.fit_params,
                                                         debug=debug)
-                            x, y, z, good, z1 = result
-                            self.z_crop = z1
-
+                            
                         except ValueError as e:
                             print(f'ValueError: {e}')
                             raise (ValueError(f'unable to unpack fit_gauss_3d output {result}'))
@@ -123,6 +124,9 @@ class DriftFitter:
                             # if len(out):
                             #    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
                             problems.append(f + 1)
+                        
+                        x, y, z, good, z1, self.fit_params = result
+                        self.z_crop = z1
                         """
                         except Exception as e:
                             print(f'Unhandled exception {e}')
@@ -456,7 +460,7 @@ def main(argsv=None, callback=None):
                                       cal_stack=cal_stack,
                                       movie=movie,
                                       roi=roi,
-                                      debug=False,
+                                      debug=True,
                                       callback=callback)
         else:
             log('Stack and movie of different sizes, running on full size')

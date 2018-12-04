@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from skimage.feature import match_template
 import logging
 logger = logging.getLogger(__name__)
+#logger.setLevel(logging.WARNING)
 logger.setLevel(logging.DEBUG)
 
 
@@ -22,7 +23,7 @@ def get_abs_max(data):
     return np.unravel_index(np.argmax(data), data.shape)
 
 
-def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_crop = (None,None), debug=False):
+def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_crop = (None,None), fit_init=None, debug=False):
     """
     Detects maximum on the stack in 3D
     Fitting 2D gaussian in xy, 4-order polynomial in z
@@ -85,13 +86,18 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
     try:    
         #[(_min, _max, y, x, sigy,angle,sigx), good] = gaussfit.fitEllipticalGaussian(xy_proj)
         #logger.debug(f'raw xy {(x,y)}')
-        [result, good] = gaussfit.fitEllipticalGaussian3D(cut_stack)
-        background, height, z, y, x, el_x, el_y, el_z, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z = result
+        [result_fit, good] = gaussfit.fitEllipticalGaussian3D(cut_stack, init=fit_init)
+        background, height, z, y, x, el_x, el_y, el_z, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z = result_fit
         logger.debug(f'raw xyz {(x, y, z)}')
     except Exception as e:
         logger.error(f'Error in gaussian fit: {e}')
-        logger.error(f'result: {result}')
+        logger.error(f'result: {result_fit}')
         return (-1, -1, -1, False, z_crop)
+
+    fitted_ellipsoid = gaussfit.ellipticalGaussian3dOnRamp(*result_fit)(*np.indices(cut_stack.shape))
+
+    fit_residue = cut_stack - fitted_ellipsoid
+
     x_found = x - r + x_px
     y_found = y - r + y_px
     logger.debug(f'xy found: {(x_found, y_found)}')
@@ -114,20 +120,51 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
 
     if debug:
 
-        fig = plt.figure(figsize=(15,3))
-        fig.add_subplot(141)
+        fig = plt.figure(dpi=150, figsize=(10,10))
+        
+        fig.add_subplot(331)
         plt.imshow(xy_proj)
         plt.title('xy')
         plt.colorbar()
 
-        fig.add_subplot(142)
+        fig.add_subplot(332)
         plt.imshow(zx_proj)
         plt.title('zx')
         plt.colorbar()
 
-        fig.add_subplot(143)
+        fig.add_subplot(333)
         plt.imshow(zy_proj)
         plt.title('zy')
+        plt.colorbar()
+        
+        fig.add_subplot(334)
+        plt.imshow(fitted_ellipsoid.max(axis=0))
+        plt.title('fit xy')
+        plt.colorbar()
+
+        fig.add_subplot(335)
+        plt.imshow(fitted_ellipsoid.max(axis=1))
+        plt.title('fit zx')
+        plt.colorbar()
+
+        fig.add_subplot(336)
+        plt.imshow(fitted_ellipsoid.max(axis=2))
+        plt.title('fit zy')
+        plt.colorbar()
+        
+        fig.add_subplot(337)
+        plt.imshow(fit_residue.max(axis=0))
+        plt.title('residue xy')
+        plt.colorbar()
+
+        fig.add_subplot(338)
+        plt.imshow(fit_residue.max(axis=1))
+        plt.title('residue zx')
+        plt.colorbar()
+
+        fig.add_subplot(339)
+        plt.imshow(fit_residue.max(axis=2))
+        plt.title('residue zy')
         plt.colorbar()
 
         #fig.add_subplot(144)
@@ -144,7 +181,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         plt.tight_layout()
         plt.show()
 
-    return x_found, y_found, z_found, good, z_crop
+    return x_found, y_found, z_found, good, z_crop, result_fit
 
 
 class FitPoly1D:

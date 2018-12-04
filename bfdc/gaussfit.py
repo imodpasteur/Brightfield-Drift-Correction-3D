@@ -94,12 +94,13 @@ def ellipticalGaussian3dOnRamp(background, height, center_z, center_y, center_x,
                                                 an_xz * (center_x - x) * (center_z - z) + \
                                                 an_yz * (center_y - y) * (center_z - z))) \
 
-def fitEllipticalGaussian3D(data:numpy.ndarray):
+def fitEllipticalGaussian3D(data:numpy.ndarray, init:list=None):
     """
     Data is assumed centered on the gaussian and of size roughly 2x the width.
     """
     assert data.ndim == 3
-    params = [data.min(),
+    if init is None or len(init) != 14:
+        params = [data.min(),
               data.max(),
               0.5 * data.shape[0],
               0.5 * data.shape[1],
@@ -113,6 +114,7 @@ def fitEllipticalGaussian3D(data:numpy.ndarray):
               0.0,
               0.0,
               0.0]
+    else: params = init
     return fitAFunctionLS(data, params, ellipticalGaussian3dOnRamp)
 
 def fitFixedSymmetricGaussian(data, a_sigma):
