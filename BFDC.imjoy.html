@@ -49,8 +49,6 @@ class PythonPlugin():
     self.root = str(await api.getConfig('root'))
     self.config_root()
 
-    #api.getConfig('root').then(self.config_root).catch(print)
-    
     self.config = {"trace":{'xypixel':100, 
                             'zstep':100,
                             'zdirection':['approach','retract'], 
@@ -85,8 +83,8 @@ class PythonPlugin():
                             'paths': ['batch_path']}
                    }
     
-    self.revoke_config(await api.getConfig('bfdc'))
-    #self.print_config()
+    self.revoke_config()
+    self.print_config()
     self.plot_menus()
 
 
@@ -216,7 +214,9 @@ class PythonPlugin():
     self.root = root
     api.setConfig('root', root)
   
-  def revoke_config(self, conf):
+  async def revoke_config(self):
+    conf = str(await api.getConfig('bfdc'))
+    print(conf)
     print('Loaded conf from Imjoy bfdc key')
     if conf:
         print('Trying to serialize with json')
