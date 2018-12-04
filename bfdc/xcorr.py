@@ -52,15 +52,14 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         logger.debug(f'cc peak value={cc_value}')
 
     r, rz = radius_xy, radius_z
-    if True:#z_crop == (None, None):
+    if z_crop == (None, None):
         z_start = max(z_px - rz, 0)
         z_stop = min(z_px + rz, len(stack))
         z_crop = (z_start, z_stop)
         logger.debug(f'Computing z boundaries before fit: z_start={z_start}, z_stop={z_stop}')
     else:
-        pass
-        #z_start, z_stop = z_crop
-        #logger.debug(f'Using z boundaries: z_start={z_start}, z_stop={z_stop}')
+        z_start, z_stop = z_crop
+        logger.debug(f'Using z boundaries: z_start={z_start}, z_stop={z_stop}')
 
     
     _, y_max, x_max = stack.shape
