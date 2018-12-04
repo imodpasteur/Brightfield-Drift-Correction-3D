@@ -307,7 +307,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     """
     print("Tracing drift using ROI")
     if callback: callback({"Message": "Tracing drift using ROI"})
-    px = [args.xypixel, args.xypixel, args.zstep, args.zstep, args.xypixel, args.xypixel]
+    px = [args.xypixel, args.xypixel, args.zstep, args.xypixel, args.xypixel]
     skip = args.skip
     start = args.start
     max_frames = args.nframes
