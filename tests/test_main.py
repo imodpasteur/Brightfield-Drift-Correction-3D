@@ -27,7 +27,6 @@ class TestMain(TestCase):
         main(par)
 
 
-
 class TestCheck_stacks_size_equals(TestCase):
 
     def test_check_stacks_size_equals(self):
