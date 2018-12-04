@@ -52,14 +52,15 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         logger.debug(f'cc peak value={cc_value}')
 
     r, rz = radius_xy, radius_z
-    if z_crop == (None, None):
+    if True:#z_crop == (None, None):
         z_start = max(z_px - rz, 0)
         z_stop = min(z_px + rz, len(stack))
         z_crop = (z_start, z_stop)
         logger.debug(f'Computing z boundaries before fit: z_start={z_start}, z_stop={z_stop}')
     else:
-        z_start, z_stop = z_crop
-        logger.debug(f'Using z boundaries: z_start={z_start}, z_stop={z_stop}')
+        pass
+        #z_start, z_stop = z_crop
+        #logger.debug(f'Using z boundaries: z_start={z_start}, z_stop={z_stop}')
 
     
     _, y_max, x_max = stack.shape
@@ -82,13 +83,13 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
     # z_proj = cut_stack[:,r,r]
 
     #[(_min, _max, y, x, sig), good] = gaussfit.fitSymmetricGaussian(xy_proj,sigma=1)
-    logger.debug('Fit gauss xy')
+    logger.debug('Fit gauss xyz')
     try:    
         #[(_min, _max, y, x, sigy,angle,sigx), good] = gaussfit.fitEllipticalGaussian(xy_proj)
         #logger.debug(f'raw xy {(x,y)}')
         [result_fit, good] = gaussfit.fitEllipticalGaussian3D(cut_stack, init=fit_init)
         background, height, z, y, x, el_x, el_y, el_z, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z = result_fit
-        logger.debug(f'raw xyz {(x, y, z)}')
+        logger.debug(f'raw xyz {np.round((x, y, z),2)}')
     except Exception as e:
         logger.error(f'Error in gaussian fit: {e}')
         logger.error(f'result: {result_fit}')
@@ -100,27 +101,14 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
 
     x_found = x - r + x_px
     y_found = y - r + y_px
-    logger.debug(f'xy found: {(x_found, y_found)}')
+    logger.debug(f'xy found: {np.round((x_found, y_found),2)}')
 
-    #logger.debug('Fit gauss with ramp zx')
-    #[(_min, _max, z, x, sigy, angle, sigx, ramp_x, ramp_y), good] = gaussfit.fitFixedEllipticalGaussianOnRamp(zy_proj)
-    #z_found = z + z_start
-    #logger.debug(f'Found raw xy {(x,y)}, z {z_found}')
-    # [(_min,_max,z,sig),good] = gaussfit.fitSymmetricGaussian1D(z_proj)
-    
-    #polyfit = FitPoly1D(z_proj, z_zoom, order=4)
-    #z_subpx = polyfit(plot=debug)
-    #z_found = z_subpx + z_start
-    #logger.debug(f'z_found = {z_subpx} + {z_start} = {z_found}')
-    #logger.debug('fit gauss 1d')
-    #[params, good] = gaussfit.fitSymmetricGaussian1DonRamp(z_proj)
-    #(background, height, center_x, width, ramp) = params
     z_found = z + z_start
-    logger.debug(f'Found  z {z_found}')
+    logger.debug(f'Found  z {np.round(z_found,2)}')
 
     if debug:
 
-        fig = plt.figure(dpi=150, figsize=(10,10))
+        fig = plt.figure(dpi=72, figsize=(5,5))
         
         fig.add_subplot(331)
         plt.imshow(xy_proj)
@@ -181,8 +169,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         plt.tight_layout()
         plt.show()
 
-    return x_found, y_found, z_found, good, z_crop, result_fit
-
+    return x_found, y_found, z_found, good, z_crop, result_fit, z_px
 
 class FitPoly1D:
 
