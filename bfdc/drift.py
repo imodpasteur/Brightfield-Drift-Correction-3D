@@ -62,13 +62,13 @@ class DriftFitter:
         xc = np.mean([b["xmax"], -b["xmin"]])
         yc = np.mean([b["ymax"], -b["ymin"]])
         x_, y_, z_ = 0, 0, 0
-        z_MSE_ = 0
+        z_px = 0
         frame_num = 0
         self.x_correction = 0
         self.y_correction = 0
         self.fit_params = None
 
-        data_save = [frame_num, x_, y_, z_, self.x_correction, self.y_correction]
+        data_save = [frame_num, x_, y_, z_, z_px, self.x_correction, self.y_correction]
 
         out = np.empty((0, len(data_save)))
         total = len(frame_list)
@@ -125,7 +125,7 @@ class DriftFitter:
                             #    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
                             problems.append(f + 1)
                         
-                        x, y, z, good, z1, self.fit_params = result
+                        x, y, z, good, z1, self.fit_params, z_px = result
                         self.z_crop = z1
                         """
                         except Exception as e:
@@ -155,12 +155,12 @@ class DriftFitter:
                             z_MSE_ = z_MSE - self.zCenter
                             logger.debug(f"x_px = {x}, y_px = {y}, z_px = {z}, x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
-                            out = np.append(out, np.array([f + 1, x_, y_, z_, self.x_correction, self.y_correction]).reshape((1, len(data_save))), axis=0)
+                            out = np.append(out, np.array([f + 1, x_, y_, z_, z_px, self.x_correction, self.y_correction]).reshape((1, len(data_save))), axis=0)
                             logging.debug(f'found xyz {x,y,z}')
                             if debug:
                                 #plt.add_subplot(155)
                                 try:
-                                    iot.plot_drift(out)
+                                    iot.plot_drift(move_drift_to_zero(out))
                                     plt.show()
                                 except Exception as e:  
                                     logger.error(f'Error in debug plot: {e}')
@@ -228,73 +228,6 @@ class DriftFitter:
         else:
             logger.debug('Ignore')
 
-
-def get_drift_3d(movie, frame_list, cal_stack, debug=False):
-    """
-    Computes drift on the movie vs cal_staack in 3D
-    :param movie: time series stack
-    :param frame_list: list with frame indices (starting with 0)
-    :param cal_stack: calibration z stack
-    :param debug: shows the fits
-    :return: table[frame,x,y,z] in pixels
-    """
-    out = []
-    total = len(movie)
-    problems = []
-    i = 0
-    try:
-        for i in frame_list:
-            frame = movie[i]
-            cc = xcorr.cc_stack(frame, cal_stack)
-            # out.append(cc_max(cc))
-            x, y, z, good = xcorr.fit_gauss_3d(cc, debug=debug)
-            out.append([i + 1, x, y, -z])
-            print('\r{}/{} '.format(i + 1, total), end=' ')
-    except Exception as e:
-        print(e)
-        problems.append(i + 1)
-
-    finally:
-        n = len(problems)
-        print(f'\nDone tracing with {n} problem frames')
-        if n:
-            print(problems)
-
-        return np.array(out)
-
-
-def trace_drift(args, cal_stack, movie, debug=False):
-    """
-    Computes 3D drift on the movie vs cal_stack
-    :param debug: Plot data and fit if True
-    :param args: dict[args.xypixel, args.zstep,args.nframes,args.skip,args.start]
-    :param cal_stack: 3d stack dictionary
-    :param movie: time series 3D stack
-    :return: table[frame,x,y,z] in nm
-    """
-    print("tracing drift!")
-    px = [args.xypixel, args.xypixel, args.zstep]
-    skip = args.skip
-    start = args.start
-    nframes = args.nframes
-    if nframes == 0:
-        nframes = None
-
-    print(f'Pixel size xyz: {px}')
-    drift_px = np.zeros(4)
-    movie, frame_list = iot.skip_stack(movie, start=start, skip=skip, maxframes=nframes)
-    try:
-        drift_px = get_drift_3d(movie=movie, frame_list=frame_list, cal_stack=cal_stack, debug=debug)
-    except KeyboardInterrupt as e:
-        print(e)
-
-    drift_nm = drift_px.copy()
-    drift_nm[:, 1:] = drift_px[:, 1:] * px
-    drift_nm[:, 3] = - drift_px[:, 3]
-    drift_nm = iot.update_frame_number(drift_nm, start, skip)
-    return drift_nm
-
-
 def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     """
     Computes 3D drift on the movie vs cal_stack with auto crop
@@ -307,7 +240,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     """
     print("Tracing drift using ROI")
     if callback: callback({"Message": "Tracing drift using ROI"})
-    px = [args.xypixel, args.xypixel, args.zstep, args.xypixel, args.xypixel]
+    px = [args.xypixel, args.xypixel, args.zstep, args.zstep, args.xypixel, args.xypixel]
     skip = args.skip
     start = args.start
     max_frames = args.nframes
@@ -326,7 +259,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     frame_list = iot.skip_stack(n_frames, start=start, skip=skip, maxframes=max_frames)
 
     try:
-        fitter = DriftFitter(cal_stack, roi, radius_xy=8, radius_z=10)
+        fitter = DriftFitter(cal_stack, roi, radius_xy=8, radius_z=12)
         drift_px = fitter.do_trace(movie, 
                                     frame_list=frame_list, 
                                     min_signal=min_signal, 
