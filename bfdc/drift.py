@@ -116,28 +116,25 @@ class DriftFitter:
                                                         debug=debug)
                             
                         except ValueError as e:
-                            print(f'ValueError: {e}')
+                            logger.warning(f'ValueError in gaussian fit: {e}')
                             raise (ValueError(f'unable to unpack fit_gauss_3d output {result}'))
 
                         except (xcorr.LowXCorr, BadGaussFit):
-                            logger.warning(f'Low cross correlation value for the frame {i+1}. Filling with the previous frame values')
+                            logger.warning(f'Low cross correlation value for the frame {i+1}. Skip frame')
                             # if len(out):
                             #    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
                             problems.append(f + 1)
                         
-                        x, y, z, good, z1, self.fit_params, z_px = result
-                        self.z_crop = z1
+
                         """
                         except Exception as e:
                             print(f'Unhandled exception {e}')
                             traceback.print_stack()
                             problems.append(f + 1)
                         """
-                        logger.debug('crop frame without extension')
-                        crop_frame_same = ft.crop_using_xy_boundaries(frame, b)
-
-                        logger.debug('Launch fit_z_MSE')
-                        z_MSE = 0.0
+                       
+                        x, y, z, good, z_crop, self.fit_params, z_px = result
+                        self.z_crop = z_crop
                         
                         if not good:
                             logger.warning(f'Bad fit in frame {f+1}')
@@ -152,7 +149,6 @@ class DriftFitter:
                             z_ = z - self.zCenter
                             x_ = x + self.x_correction - xc - self.radius_xy
                             y_ = y + self.y_correction - yc - self.radius_xy
-                            z_MSE_ = z_MSE - self.zCenter
                             logger.debug(f"x_px = {x}, y_px = {y}, z_px = {z}, x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
                             out = np.append(out, np.array([f + 1, x_, y_, z_, z_px, self.x_correction, self.y_correction]).reshape((1, len(data_save))), axis=0)
@@ -393,7 +389,7 @@ def main(argsv=None, callback=None):
                                       cal_stack=cal_stack,
                                       movie=movie,
                                       roi=roi,
-                                      debug=True,
+                                      debug=False,
                                       callback=callback)
         else:
             log('Stack and movie of different sizes, running on full size')
