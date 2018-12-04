@@ -11,8 +11,8 @@ mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.WARNING)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
+#logger.setLevel(logging.DEBUG)
 
 
 class WrongCrop(Exception):

@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 from skimage.feature import match_template
 import logging
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.WARNING)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
+#logger.setLevel(logging.DEBUG)
 
 
 class LowXCorr(Exception):
