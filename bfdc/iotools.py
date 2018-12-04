@@ -264,7 +264,7 @@ def plot_drift(table):
     plt.plot(table[:, 0], table[:, 1:])
     plt.xlabel('frame')
     plt.ylabel('Drift, nm')
-    plt.legend(['x', 'y', 'z',  'x_shift', 'y_shift'])
+    plt.legend(['x', 'y', 'z', 'x_shift', 'y_shift'])
     plt.title('Drift BF, nm')
     plt.grid()
 
