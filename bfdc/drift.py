@@ -35,7 +35,7 @@ class DriftFitter:
         self.dict = ft.crop_using_xy_boundaries(cal_stack, boundaries=self.boundaries)
         self.dict = ft.gf(self.dict, smooth_dict)
         logger.debug(f'smooth dict with {smooth_dict}')
-        self.z_crop = (None, None)
+        self.z_crop = (0, None)
         self.zCenter = len(self.dict) // 2
         self.radius_xy = radius_xy
         self.radius_z = radius_z
@@ -85,12 +85,12 @@ class DriftFitter:
                 if frame_mean < min_signal:
                     logger.debug('Skip frame due to low mean signal')
                 else:
-                    crop_frame = ft.crop_using_xy_boundaries(frame, b, extend=extend_xy)
+                    crop_frame = ft.crop_using_xy_boundaries(mask=frame, boundaries=b, extend=extend_xy)
                     crop_frame = ft.gf(input=crop_frame, sigma=smooth_movie)
                     logger.debug(f'Cropping frame {crop_frame.shape}')
                     if min(crop_frame.shape) == 0:
                         raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
-                    crop_dict = self.dict
+                    crop_dict = self.crop_dict()
                     cc = xcorr.cc_stack(crop_frame, crop_dict)
                     if cc.max() < min_xcorr:
                         logger.warning(f'xcorr.max is lower than threshold {min_xcorr}')
@@ -134,7 +134,7 @@ class DriftFitter:
                         """
                        
                         x, y, z, good, z_crop, self.fit_params, z_px = result
-                        self.z_crop = z_crop
+                        logger.debug(f'Got updated z_crop with values {z_crop}')
                         
                         if not good:
                             logger.warning(f'Bad fit in frame {f+1}')
@@ -146,13 +146,17 @@ class DriftFitter:
 
                         else:
                             #z_ = z + self.z_crop[0] - self.zCenter
-                            z_ = z - self.zCenter
+                            z_ = z + self.z_crop[0]- self.zCenter
                             x_ = x + self.x_correction - xc - self.radius_xy
                             y_ = y + self.y_correction - yc - self.radius_xy
-                            logger.debug(f"x_px = {x}, y_px = {y}, z_px = {z}, x_correction = {self.x_correction}, y_correction = {self.y_correction}")
+                            logger.debug(f"Saving x_px = {x_}, y_px = {y_}, z_px = {z_}, x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
                             out = np.append(out, np.array([f + 1, x_, y_, z_, self.x_correction, self.y_correction]).reshape((1, len(data_save))), axis=0)
-                            logging.debug(f'found xyz {x,y,z}')
+                            
+                            self.z_crop = (z_crop[0] + self.z_crop[0], 
+                                       z_crop[1] + self.z_crop[0])
+                            logger.debug(f'Updating self.z_crop with {self.z_crop}')
+                        
                             if debug:
                                 #plt.add_subplot(155)
                                 try:
@@ -236,12 +240,12 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     """
     print("Tracing drift using ROI")
     if callback: callback({"Message": "Tracing drift using ROI"})
-    px = [args.xypixel, args.xypixel, args.zstep, args.zstep, args.xypixel, args.xypixel]
     skip = args.skip
     start = args.start
     max_frames = args.nframes
     min_signal = args.minsignal
     movie_path = args.movie
+    px = [args.xypixel, args.xypixel, args.zstep, args.xypixel, args.xypixel]
 
     print(f'Pixel size xyz: {px}')
     drift_px = np.zeros((1, 4))
@@ -265,7 +269,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
         print(e)
 
     drift_nm = drift_px.copy()
-    try:
+    try:    
         drift_nm[:, 1:] = drift_px[:, 1:] * px
     except ValueError:
         dif = len(drift_px[0,1:]) - len(px)
@@ -338,6 +342,7 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=0, maxbg=0, 
 
 
 def main(argsv=None, callback=None):
+
     def log(msg=None, level='info'):
         if callback:
             callback({'Message': msg})
