@@ -82,7 +82,7 @@ def fit_gauss_3d(stack:np.ndarray,
     if cc_value < min_xcorr:
         #raise(LowXCorr("fit_gauss_3d: Cross corellation value os too low!"))
         logger.error("fit_gauss_3d: Cross corellation value os too low!")
-        return (-1, -1, -1, False, z_crop)
+        return FitResult()
     else:
         logger.debug(f'cc peak value={cc_value}')
 
@@ -109,7 +109,7 @@ def fit_gauss_3d(stack:np.ndarray,
     logger.debug(f'After cutting x,y,z, we got cut_stack shape {cut_stack.shape}')
     if cut_stack.shape != (z_stop - z_start, 2 * r , 2 * r  ):
         logger.error(f'Wrong cut_stack shape: expected {(z_stop - z_start, 2 * r + 1, 2 * r +1 )}, got {cut_stack.shape}')
-        return (-1, -1, -1, False, z_crop)
+        return FitResult()
 
     xy_proj = cut_stack.max(axis=0)
     zx_proj = cut_stack.max(axis=1)
@@ -120,19 +120,20 @@ def fit_gauss_3d(stack:np.ndarray,
     # z_proj = cut_stack[:,r,r]
 
     #[(_min, _max, y, x, sig), good] = gaussfit.fitSymmetricGaussian(xy_proj,sigma=1)
-    logger.debug('Fit gauss xyz')
+    logger.debug('Fit gauss xy')
     try:    
         [(_min, _max, y, x, sigy,angle,sigx), good] = gaussfit.fitEllipticalGaussian(xy_proj)
         #[result_fit, good] = gaussfit.fitEllipticalGaussian3D(cut_stack, init=fit_init)
         #background, height, z, y, x, el_x, el_y, el_z, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z = result_fit
-        logger.debug(f'raw xyz {np.round((x, y, z),2)}')
+        
     except Exception as e:
         logger.error(f'Error in gaussian fit: {e}')
-        logger.error(f'result: {result_fit}')
+        #logger.error(f'result: {result_fit}')
         return (-1, -1, -1, False, z_crop)
 
-    zfitter = FitPoly1D(z_proj)
-    z = zfitter(plot=True)
+    zfitter = FitPoly1D(z_proj, zoom=20, radius=8)
+    z = zfitter(plot=debug)
+    logger.debug(f'raw xyz {np.round((x, y, z),2)}')
     
     x_found = x - r + x_px
     y_found = y - r + y_px
@@ -145,19 +146,19 @@ def fit_gauss_3d(stack:np.ndarray,
 
         #fit_residue = cut_stack - fitted_ellipsoid
 
-        fig = plt.figure(dpi=72, figsize=(5,5))
+        fig = plt.figure(dpi=72, figsize=(8,3))
         
-        fig.add_subplot(311)
+        fig.add_subplot(131)
         plt.imshow(xy_proj)
         plt.title('xy')
         plt.colorbar()
 
-        fig.add_subplot(312)
+        fig.add_subplot(132)
         plt.imshow(zx_proj)
         plt.title('zx')
         plt.colorbar()
 
-        fig.add_subplot(313)
+        fig.add_subplot(133)
         plt.imshow(zy_proj)
         plt.title('zy')
         plt.colorbar()
@@ -206,7 +207,7 @@ def fit_gauss_3d(stack:np.ndarray,
         plt.tight_layout()
         plt.show()
 
-    return FitResult(x_found, y_found, z_found, good, result_fit, z_px)
+    return FitResult(x_found, y_found, z_found, good, None, z_px)
 
 class FitPoly1D:
 
