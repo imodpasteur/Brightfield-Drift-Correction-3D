@@ -63,7 +63,7 @@ class DriftFitter:
         xc = np.mean([b["xmax"], -b["xmin"]])
         yc = np.mean([b["ymax"], -b["ymin"]])
         x_, y_, z_ = 0, 0, 0
-        z_px = 0
+        #z_px = 0
         frame_num = 0
         self.x_correction = 0
         self.y_correction = 0
@@ -138,7 +138,7 @@ class DriftFitter:
                             problems.append(f + 1)
                         """
                         try:
-                            x, y, z, good, self.fit_params, z_px = result
+                            x, y, z, good, self.fit_params, _ = result
                             
                         except ValueError as e:
                             logging.error(f'Unable to unpack fit result {e}')
@@ -426,7 +426,7 @@ def main(argsv=None, callback=None):
             log('Drift table empty, exiting')
 
         if args.lock:
-            unlock = iot.remove_trace_lock(lock)
+            iot.remove_trace_lock(lock)
 
     elif args.command == 'apply':
         logger.debug(args)

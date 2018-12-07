@@ -122,7 +122,7 @@ def fit_gauss_3d(stack:np.ndarray,
     #[(_min, _max, y, x, sig), good] = gaussfit.fitSymmetricGaussian(xy_proj,sigma=1)
     logger.debug('Fit gauss xy')
     try:    
-        [(_min, _max, y, x, sigy,angle,sigx), good] = gaussfit.fitEllipticalGaussian(xy_proj)
+        [(_min, _max, y, x, _, _, _), good] = gaussfit.fitEllipticalGaussian(xy_proj)
         #[result_fit, good] = gaussfit.fitEllipticalGaussian3D(cut_stack, init=fit_init)
         #background, height, z, y, x, el_x, el_y, el_z, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z = result_fit
         
@@ -329,7 +329,7 @@ def cc_stack(image, stack, plot=False):
     image = np.array(image - np.mean(image), dtype='f')
     stack = np.array(stack - np.mean(stack), dtype='f')
     out = []
-    for i, t in enumerate(stack):
+    for t in stack:
         out.append(cc_template(image, t))
     out = np.array(out)
     if plot:
