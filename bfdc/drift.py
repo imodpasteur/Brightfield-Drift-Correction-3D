@@ -412,8 +412,8 @@ def main(argsv=None, callback=None):
                                       debug=False,
                                       callback=callback)
         else:
-            log('Stack and movie of different sizes, running on full size')
-            drift_ = trace_drift(args, cal_stack, movie)
+            log('Stack and movie of different sizes, exiting')
+            return
 
         if drift_.shape[0] > 0:
             movie_folder = iot.get_parent_path(movie_path)
