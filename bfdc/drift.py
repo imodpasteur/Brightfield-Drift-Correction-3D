@@ -11,8 +11,8 @@ mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-#logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class WrongCrop(Exception):
@@ -39,6 +39,7 @@ class DriftFitter:
         self.zCenter = len(self.dict) // 2
         self.radius_xy = radius_xy
         self.radius_z = radius_z
+        self.z_last = None
 
     def do_trace(self, 
                 movie, 
@@ -105,13 +106,17 @@ class DriftFitter:
                         problems.append(f + 1)
                     else:
                         logger.debug('Fit 3D')
-                        result = 'empty'
+                        result = xcorr.FitResult()
                         try:
+                            if self.z_last:
+                                z_init = np.floor(self.z_last) - self.z_crop[0]
+                            else:
+                                z_init = None
                             result = xcorr.fit_gauss_3d(cc,
                                                         radius_xy=self.radius_xy,
                                                         radius_z=self.radius_z,
                                                         z_zoom=z_zoom,
-                                                        z_crop=self.z_crop,
+                                                        z_init=z_init,
                                                         fit_init=self.fit_params,
                                                         debug=debug)
                             
@@ -125,17 +130,21 @@ class DriftFitter:
                             #    out = np.append(out, np.array([i + 1, x_, y_, z_]).reshape((1, 4)), axis=0)
                             problems.append(f + 1)
                         
-
+                         
                         """
                         except Exception as e:
                             print(f'Unhandled exception {e}')
                             traceback.print_stack()
                             problems.append(f + 1)
                         """
-                       
-                        x, y, z, good, z_crop, self.fit_params, z_px = result
-                        logger.debug(f'Got updated z_crop with values {z_crop}')
-                        
+                        try:
+                            x, y, z, good, self.fit_params, z_px = result
+                            
+                        except ValueError as e:
+                            logging.error(f'Unable to unpack fit result {e}')
+                            traceback.print_exc()
+                            return
+
                         if not good:
                             logger.warning(f'Bad fit in frame {f+1}')
                             problems.append(f + 1)
@@ -146,15 +155,20 @@ class DriftFitter:
 
                         else:
                             #z_ = z + self.z_crop[0] - self.zCenter
-                            z_ = z + self.z_crop[0]- self.zCenter
+                            z_abs = z + self.z_crop[0]
+                            z_ = z_abs - self.zCenter
+                            logger.debug(f'Found  z_abs {np.round(z_abs,2)}')
+
+                            
+                            self.z_last = z_abs
+
                             x_ = x + self.x_correction - xc - self.radius_xy
                             y_ = y + self.y_correction - yc - self.radius_xy
                             logger.debug(f"Saving x_px = {x_}, y_px = {y_}, z_px = {z_}, x_correction = {self.x_correction}, y_correction = {self.y_correction}")
 
                             out = np.append(out, np.array([f + 1, x_, y_, z_, self.x_correction, self.y_correction]).reshape((1, len(data_save))), axis=0)
                             
-                            self.z_crop = (z_crop[0] + self.z_crop[0], 
-                                       z_crop[1] + self.z_crop[0])
+                            self.update_z_crop(z_abs)
                             logger.debug(f'Updating self.z_crop with {self.z_crop}')
                         
                             if debug:
@@ -196,7 +210,8 @@ class DriftFitter:
             return np.array(out)
 
     def update_z_crop(self, z):
-        z1, z2 = np.max([0, int(z - self.radius_z)]), np.min([int(z + self.radius_z), len(self.dict) - 1])
+        z1 = np.max([0, z - self.radius_z]).astype(int)
+        z2 = np.min([z + self.radius_z, len(self.dict) - 1]).astype(int)
         logger.debug(f'update_z_crop:z boundaries {z1},{z2}')
         self.z_crop = (z1, z2)
 

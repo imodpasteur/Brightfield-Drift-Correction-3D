@@ -5,12 +5,40 @@ import matplotlib.pyplot as plt
 from skimage.feature import match_template
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-#logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class LowXCorr(Exception):
     pass
+
+class FitResult():
+
+    def __init__(self, 
+                x=None, 
+                y=None, 
+                z=None, 
+                good=False, 
+                result_fit=None, 
+                z_px=None):
+
+        self.x = x
+        self.y = y
+        self.z = z
+        self.good = good
+        self.result_fit = result_fit
+        self.z_px = z_px
+    
+    def __iter__(self):
+        for a in (self.x, self.y, self.z, self.good, self.result_fit, self.z_px):
+            yield a
+    
+    def __repr__(self):
+        return 'x={}, y={}, z={}, good={}, result_fit={}, z_px={}'.format(self.x, 
+                            self.y, self.z, self.good, self.result_fit, self.z_px)
+
+
+
 
 
 def get_abs_max(data):
@@ -23,7 +51,14 @@ def get_abs_max(data):
     return np.unravel_index(np.argmax(data), data.shape)
 
 
-def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_crop = (None,None), fit_init=None, debug=False):
+def fit_gauss_3d(stack:np.ndarray, 
+                radius_xy:int=4, 
+                radius_z:int=8, 
+                z_zoom:int=20, 
+                min_xcorr:np.float=0.5, 
+                z_init:np.float=None, 
+                fit_init:list=None, 
+                debug=False) -> FitResult:
     """
     Detects maximum on the stack in 3D
     Fitting 2D gaussian in xy, 4-order polynomial in z
@@ -52,14 +87,17 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         logger.debug(f'cc peak value={cc_value}')
 
     r, rz = radius_xy, radius_z
-    if True:#z_crop == (None, None):
+    if z_init is None:
         z_start = max(z_px - rz, 0)
         z_stop = min(z_px + rz, len(stack))
         z_crop = (z_start, z_stop)
-        logger.debug(f'Computing z boundaries before fit: z_start={z_start}, z_stop={z_stop}')
-    #else:
-    #    z_start, z_stop = z_crop
-    #    logger.debug(f'Using z boundaries: z_start={z_start}, z_stop={z_stop}')
+        logger.debug(f'Computing z boundaries from peak: z_start={z_start}, z_stop={z_stop}')
+    else:
+        z_init = int(z_init)
+        z_start = max(z_init - rz, 0)
+        z_stop = min(z_init + rz, len(stack))
+        z_crop = (z_start, z_stop)
+        logger.debug(f'Using z boundaries: z_start={z_start}, z_stop={z_stop}')
 
     
     _, y_max, x_max = stack.shape
@@ -94,18 +132,17 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         logger.error(f'result: {result_fit}')
         return (-1, -1, -1, False, z_crop)
 
-    fitted_ellipsoid = gaussfit.ellipticalGaussian3dOnRamp(*result_fit)(*np.indices(cut_stack.shape))
-
-    fit_residue = cut_stack - fitted_ellipsoid
-
+    
     x_found = x - r + x_px
     y_found = y - r + y_px
     logger.debug(f'xy found: {np.round((x_found, y_found),2)}')
 
     z_found = z + z_start
-    logger.debug(f'Found  z {np.round(z_found,2)}')
-
+    
     if debug:
+        fitted_ellipsoid = gaussfit.ellipticalGaussian3dOnRamp(*result_fit)(*np.indices(cut_stack.shape))
+
+        fit_residue = cut_stack - fitted_ellipsoid
 
         fig = plt.figure(dpi=72, figsize=(5,5))
         
@@ -168,7 +205,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=8, z_zoom=20, min_xcorr = 0.5, z_c
         plt.tight_layout()
         plt.show()
 
-    return x_found, y_found, z_found, good, z_crop, result_fit, z_px
+    return FitResult(x_found, y_found, z_found, good, result_fit, z_px)
 
 class FitPoly1D:
 
