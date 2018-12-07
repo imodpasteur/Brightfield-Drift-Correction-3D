@@ -15,6 +15,7 @@ import subprocess
 import logging
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 def open_stack(path):
@@ -445,6 +446,8 @@ def parse_input():
                               help='channel position (starts with 0) for the movie. Default: 1')
     trace_parser.add_argument('--lock', type=int, default=0,
                               help='if 1, will create BFDC_.lock file in the movie folder. Default: 0')
+    trace_parser.add_argument('--verbose', type=int, default=0,
+                              help='If 1, will output debug info. Default: 0')
 
     # apply
     apply_parser = subparsers.add_parser('apply', help='apply drift 3D to ZOLA table')
