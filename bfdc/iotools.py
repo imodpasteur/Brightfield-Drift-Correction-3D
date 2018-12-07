@@ -175,7 +175,7 @@ class TiffStackOpener:
             raise AttributeError
 
     def __len__(self):
-        return self.n_frames()
+        return self.n_frames
 
     def __iter__(self):
         for i in self.file_list:
