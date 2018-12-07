@@ -122,16 +122,17 @@ def fit_gauss_3d(stack:np.ndarray,
     #[(_min, _max, y, x, sig), good] = gaussfit.fitSymmetricGaussian(xy_proj,sigma=1)
     logger.debug('Fit gauss xyz')
     try:    
-        #[(_min, _max, y, x, sigy,angle,sigx), good] = gaussfit.fitEllipticalGaussian(xy_proj)
-        #logger.debug(f'raw xy {(x,y)}')
-        [result_fit, good] = gaussfit.fitEllipticalGaussian3D(cut_stack, init=fit_init)
-        background, height, z, y, x, el_x, el_y, el_z, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z = result_fit
+        [(_min, _max, y, x, sigy,angle,sigx), good] = gaussfit.fitEllipticalGaussian(xy_proj)
+        #[result_fit, good] = gaussfit.fitEllipticalGaussian3D(cut_stack, init=fit_init)
+        #background, height, z, y, x, el_x, el_y, el_z, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z = result_fit
         logger.debug(f'raw xyz {np.round((x, y, z),2)}')
     except Exception as e:
         logger.error(f'Error in gaussian fit: {e}')
         logger.error(f'result: {result_fit}')
         return (-1, -1, -1, False, z_crop)
 
+    zfitter = FitPoly1D(z_proj)
+    z = zfitter(plot=True)
     
     x_found = x - r + x_px
     y_found = y - r + y_px
@@ -140,27 +141,27 @@ def fit_gauss_3d(stack:np.ndarray,
     z_found = z + z_start
     
     if debug:
-        fitted_ellipsoid = gaussfit.ellipticalGaussian3dOnRamp(*result_fit)(*np.indices(cut_stack.shape))
+        #fitted_ellipsoid = gaussfit.ellipticalGaussian3dOnRamp(*result_fit)(*np.indices(cut_stack.shape))
 
-        fit_residue = cut_stack - fitted_ellipsoid
+        #fit_residue = cut_stack - fitted_ellipsoid
 
         fig = plt.figure(dpi=72, figsize=(5,5))
         
-        fig.add_subplot(331)
+        fig.add_subplot(311)
         plt.imshow(xy_proj)
         plt.title('xy')
         plt.colorbar()
 
-        fig.add_subplot(332)
+        fig.add_subplot(312)
         plt.imshow(zx_proj)
         plt.title('zx')
         plt.colorbar()
 
-        fig.add_subplot(333)
+        fig.add_subplot(313)
         plt.imshow(zy_proj)
         plt.title('zy')
         plt.colorbar()
-        
+        '''
         fig.add_subplot(334)
         plt.imshow(fitted_ellipsoid.max(axis=0))
         plt.title('fit xy')
@@ -201,7 +202,7 @@ def fit_gauss_3d(stack:np.ndarray,
         #plt.plot(polyfit.x_new + z_start, polyfit.ext_curve, '--', label='poly fit')
         #plt.plot(polyfit.x_new[np.argmax(polyfit.ext_curve)]+ z_start, max(polyfit.ext_curve), 'o', label='z found')
         #plt.legend()
-
+        '''
         plt.tight_layout()
         plt.show()
 
