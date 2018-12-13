@@ -22,7 +22,7 @@ class FeatureExtractor:
     def __init__(self, cal_stack, extend = 0, invert=False):
         self.cal_stack = np.array(cal_stack,dtype='f')[:]
         self.featuremap = highlight_feature(self.cal_stack)
-        self.mask = get_mask_otsu(self.featuremap,invert)
+        self.mask = get_mask_otsu(self.featuremap)
         self.labeled_mask = label_mask(self.mask)
         self.peak = get_abs_max(self.featuremap)
         self.segment = get_isolated_segment(self.labeled_mask, self.peak)
@@ -30,9 +30,6 @@ class FeatureExtractor:
         self.crop_stack = crop_using_xy_boundaries(self.cal_stack, self.boundaries,extend=0)
         self.invert=invert
 
-    def get_peak(self):
-        if self.invert:
-            peak = get_abs_max(self.featuremap)
     def get_crop(self):
         return self.crop_stack
 
@@ -146,7 +143,7 @@ def crop_using_xy_boundaries(mask:np.ndarray, boundaries:dict, extend:int=0):
     x1 = max(0, b['xmin'] - e)
     x2 = min(x_max, b['xmax'] + e)
     y1 = max(0, b['ymin'] - e)
-    y2 = min(x_max, b['ymax'] + e)
+    y2 = min(y_max, b['ymax'] + e)
     logger.debug(f'Boundaries with limits and extension ({e}): xmin:xmax, ymin:ymax {x1}:{x2}, {y1},{y2}')
     if np.ndim(mask) == 3:
         return mask[:, y1:y2, x1:x2]
