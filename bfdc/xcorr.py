@@ -122,17 +122,17 @@ def fit_gauss_3d(stack:np.ndarray,
     # [(_min, _max, y, x, sig), good] = gaussfit.fitSymmetricGaussian(xy_proj,sigma=1)
     logger.debug('Fit gauss xy')
     try:    
-        [(_min, _max, y, x, _, _, _), good] = gaussfit.fitEllipticalGaussian(xy_proj)
-        # [result_fit, good] = gaussfit.fitEllipticalGaussian3D(cut_stack, init=fit_init)
-        # background, height, z, y, x, el_x, el_y, el_z, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z = result_fit
+        # [(_min, _max, y, x, _, _, _), good] = gaussfit.fitEllipticalGaussian(xy_proj)
+         [result_fit, good] = gaussfit.fitEllipticalGaussian3D(cut_stack, init=fit_init)
+         background, height, z, y, x, el_x, el_y, el_z, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z = result_fit
         
     except Exception as e:
         logger.error(f'Error in gaussian fit: {e}')
-        #logger.error(f'result: {result_fit}')
+        logger.error(f'result: {result_fit}')
         return FitResult()
 
-    zfitter = FitPoly1D(z_proj, zoom=20, radius=8)
-    z = zfitter(plot=debug)
+    # zfitter = FitPoly1D(z_proj, zoom=20, radius=8)
+    # z = zfitter(plot=debug)
     logger.debug(f'raw xyz {np.round((x, y, z),2)}')
     
     x_found = x - r + x_px
@@ -142,9 +142,9 @@ def fit_gauss_3d(stack:np.ndarray,
     z_found = z + z_start
     
     if debug:
-        #fitted_ellipsoid = gaussfit.ellipticalGaussian3dOnRamp(*result_fit)(*np.indices(cut_stack.shape))
+        # fitted_ellipsoid = gaussfit.ellipticalGaussian3dOnRamp(*result_fit)(*np.indices(cut_stack.shape))
 
-        #fit_residue = cut_stack - fitted_ellipsoid
+        # fit_residue = cut_stack - fitted_ellipsoid
 
         fig = plt.figure(dpi=72, figsize=(8,3))
         
