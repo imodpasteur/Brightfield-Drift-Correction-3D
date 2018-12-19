@@ -115,21 +115,21 @@ def fit_gauss_3d(stack:np.ndarray,
     zx_proj = cut_stack.max(axis=1)
     zy_proj = cut_stack.max(axis=2)
     z_proj = cut_stack.max(axis=(1, 2))
-    #z_proj = cut_stack[:,r].max(axis=1) #ignore y
-    #z_proj = cut_stack[:,r,r] #ignore xy
+    # z_proj = cut_stack[:,r].max(axis=1) #ignore y
+    # z_proj = cut_stack[:,r,r] #ignore xy
     # z_proj = cut_stack[:,r,r]
 
-    #[(_min, _max, y, x, sig), good] = gaussfit.fitSymmetricGaussian(xy_proj,sigma=1)
+    # [(_min, _max, y, x, sig), good] = gaussfit.fitSymmetricGaussian(xy_proj,sigma=1)
     logger.debug('Fit gauss xy')
     try:    
         [(_min, _max, y, x, _, _, _), good] = gaussfit.fitEllipticalGaussian(xy_proj)
-        #[result_fit, good] = gaussfit.fitEllipticalGaussian3D(cut_stack, init=fit_init)
-        #background, height, z, y, x, el_x, el_y, el_z, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z = result_fit
+        # [result_fit, good] = gaussfit.fitEllipticalGaussian3D(cut_stack, init=fit_init)
+        # background, height, z, y, x, el_x, el_y, el_z, an_xy, an_yz, an_xz, ramp_x, ramp_y, ramp_z = result_fit
         
     except Exception as e:
         logger.error(f'Error in gaussian fit: {e}')
         #logger.error(f'result: {result_fit}')
-        return (-1, -1, -1, False, z_crop)
+        return FitResult()
 
     zfitter = FitPoly1D(z_proj, zoom=20, radius=8)
     z = zfitter(plot=debug)
