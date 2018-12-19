@@ -150,7 +150,7 @@ def crop_using_xy_boundaries(mask:np.ndarray, boundaries:dict, extend:int=0):
     elif np.ndim(mask) == 2:
         return mask[y1:y2, x1:x2]
     else:
-        raise (TypeError("Please use numpy array with 2 or 3 dimentions"))
+        raise (TypeError("Please use numpy array with 2 or 3 dimensions"))
 
 
 def highlight_feature(cal_stack):
