@@ -11,8 +11,8 @@ mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.WARNING)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
+#logger.setLevel(logging.DEBUG)
 
 
 class WrongCrop(Exception):
@@ -33,7 +33,7 @@ class DriftFitter:
         self.roi = roi
         self.boundaries = ft.roi_to_boundaries(roi)
         self.dict = ft.crop_using_xy_boundaries(cal_stack, boundaries=self.boundaries)
-        self.dict = ft.gf(self.dict, smooth_dict)
+        if smooth_dict: self.dict = ft.gf(self.dict, smooth_dict)
         logger.debug(f'smooth dict with {smooth_dict}')
         self.z_crop = (0, None)
         self.zCenter = len(self.dict) // 2
@@ -48,7 +48,7 @@ class DriftFitter:
                 min_xcorr=0.5, 
                 z_zoom=20, 
                 min_signal=100, 
-                smooth_movie=1,
+                smooth_movie=0,
                 debug=False, 
                 callback=None):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
@@ -87,7 +87,7 @@ class DriftFitter:
                     logger.debug('Skip frame due to low mean signal')
                 else:
                     crop_frame = ft.crop_using_xy_boundaries(mask=frame, boundaries=b, extend=extend_xy)
-                    crop_frame = ft.gf(input=crop_frame, sigma=smooth_movie)
+                    if smooth_movie: crop_frame = ft.gf(input=crop_frame, sigma=smooth_movie)
                     logger.debug(f'Cropping frame {crop_frame.shape}')
                     if min(crop_frame.shape) == 0:
                         raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
@@ -187,7 +187,7 @@ class DriftFitter:
                 sys.stdout.flush()
 
                 if callback and i%10 == 0:
-                    callback({"Progress": {"processed" : f+1,
+                    callback({"Progress": {"processed" : i+1,
                                            "total" : total,
                                            "found" : len(out)}
                               })
