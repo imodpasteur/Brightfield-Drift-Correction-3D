@@ -1,0 +1,6 @@
+scikit-image
+numpy
+scipy
+matplotlib<2.2
+read-roi
+

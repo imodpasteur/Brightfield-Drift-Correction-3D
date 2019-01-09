@@ -1,0 +1,9 @@
+data
+.idea
+.ipynb*
+*.ipynb
+build/*
+*.pyc
+*.egg
+bfdc.egg-info/*
+bfdc/__pycache__
