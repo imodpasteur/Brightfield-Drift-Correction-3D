@@ -220,12 +220,12 @@ class PythonPlugin():
     conf = str(await api.getConfig('bfdc'))
     print(conf)
     print('Loaded conf from Imjoy bfdc key')
-    if conf:
+    try:
         print('Trying to serialize with json')
         config = json.loads(conf)
-    else:
+    except json.decoder.JSONDecodeError:
         print('No configuration found in Imjoy')
-        return
+        return False
     print('Loaded configuration from Imjoy')
     if config.keys() == self.config.keys():
         print('Keys are the same')
@@ -240,6 +240,7 @@ class PythonPlugin():
     else:
         print(f'Keys are different current vs remote: {self.config.keys()} vs {config.keys()}')
         print('Keep the curent configuration')
+    return True
 
   def dump_config(self):
     print('Saving updated config to Imjoy')
