@@ -23,17 +23,17 @@ It will also show the drift plot in the separate window.
   "flags": ["single-instance", "allow-detach"],
   "icon": null,
   "env": "conda create -n imjoy python=3.7",
-  "requirements": ["git+https://github.com/imodpasteur/Brightfield-Drift-Correction-3D.git@dev"],
+  "requirements": ["git+https://github.com/imodpasteur/Brightfield-Drift-Correction-3D.git@v0.4.1"],
   "dependencies": []
 }
 </config>
 
 <script lang="python">
-#"git+https://github.com/imodpasteur/Brightfield-Drift-Correction-3D.git@dev"
+#"git+https://github.com/imodpasteur/Brightfield-Drift-Correction-3D.git@v0.3.0"
 import numpy as np
 import sys
 import os
-#sys.path.insert(0,'/Volumes/Imod-grenier/Andrey/Phase retrieve/drift-correction/BFDC/')
+sys.path.insert(0,'/Volumes/Imod-grenier/Andrey/Phase retrieve/drift-correction/BFDC/')
 from bfdc import drift
 import base64
 import asyncio
@@ -47,14 +47,15 @@ class PythonPlugin():
     print(f'Running BFDC in Python {sys.version}.')
 
     self.root = str(await api.getConfig('root'))
+    
     self.config_root()
 
-    self.config = {"trace":{'xypixel':100, 
+    self.config = {"trace":{'xypixel':110, 
                             'zstep':100,
                             'zdirection':['approach','retract'], 
-                            'start':0, 
+                            'start':10, 
                             'nframes':0, 
-                            'skip':0,
+                            'skip':10,
                             'minsignal':0,
                             'paths':['dictionary',
                                      'roi',
@@ -64,11 +65,11 @@ class PythonPlugin():
                             'maxbg':0,
                             'paths':['zola_table',
                                      'drift_table']},
-                   "batch":{'xypixel':100, 
+                   "batch":{'xypixel':110, 
                             'zstep':100,
                             'zdirection':['approach','retract'], 
-                            'start':0,  
-                            'skip':0,
+                            'start':10,  
+                            'skip':10,
                             'fov_prefix': 'FOV',
                             'dict_folder_prefix': 'dict',
                             'dict_suffix': 'ome.tif',
@@ -83,12 +84,13 @@ class PythonPlugin():
                             'paths': ['batch_path']}
                    }
     
-    self.revoke_config()
+    await self.revoke_config()
     self.print_config()
     self.plot_menus()
 
 
   def plot_menus(self):
+    ##bla
     for action in self.config:
         name = self.config[action]
         ui = []
@@ -130,7 +132,7 @@ class PythonPlugin():
   async def run(self,my):
     print(my.config)
     arg_dict = my.config
-    action = arg_dict.pop('type')
+    action = arg_dict.pop('type').split('/')[-1]
     if action in self.config:
         self.update_config(action,arg_dict)
         self.config_root()
