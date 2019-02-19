@@ -11,7 +11,7 @@ from scipy.ndimage import gaussian_filter1d as gf1
 from skimage import io
 import bfdc.picassoio as pio
 import subprocess
-
+import pandas as pd
 import logging
 
 logger = logging.getLogger(__name__)
@@ -252,6 +252,23 @@ def open_csv_table(path, show_header=False):
     if show_header:
         subprocess.check_output(['head', '-n', '1', path])
     return np.loadtxt(path, delimiter=',', skiprows=1)
+
+supported_ext = {'csv':
+                    {'load': pd.read_csv, 'save': pd.to_csv}, 
+                'hdf5':
+                    {'load': pd.read_hdf, 'save': pd.to_hdf}
+}
+    
+def open_localization_table(path):
+    '''
+    Generalized table openeneer based on pandas
+    '''
+    ext = get_ext(path)
+    try:
+        file_handler = supported_ext(ext)
+    except IndexError:
+        logger.error(f'Unsupported file format. Expected {list(supported_ext)}')
+
 
 
 def save_zola_table(table, path):
