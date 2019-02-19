@@ -19,11 +19,27 @@ class Test_pd_io(TestCase):
         path = "data/NUP-20180612-FOV1/results/BFCC_table.csv"
         df = iot.open_localization_table(path)
         self.assertIsInstance(df, pd.DataFrame)
+        self.assertEqual(df.shape[1], 4)
+        print(df.columns)
+        with self.assertRaises(KeyError):
+            df['yyy']
 
     def test_txt_open(self):
         path = "data/NUP-20180612-FOV1/results/ZOLA_localization_table_ZolaProtocol.txt"
         with self.assertRaises(TypeError):
             df = iot.open_localization_table(path)
+
+
+class Test_interpolate_frames(TestCase):
+
+    def test_frame_interpolation(self):
+        bf_path = "data/NUP-20180612-FOV1/results/BFCC_table.csv"
+        loc_path = "data/NUP-20180612-FOV1/results/ZOLA_localization_table.csv"
+        bf_table = iot.open_csv_table(bf_path)
+        loc_table = iot.open_localization_table(loc_path)
+        new_bf_table = iot.interpolate_frames(loc_table, bf_table)
+        self.assertEqual(len(new_bf_table), len(loc_table))
+        print(loc_table.columns)
 
 
 class Test_check_multi_channel(TestCase):

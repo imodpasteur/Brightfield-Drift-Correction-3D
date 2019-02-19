@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='bfdc',
-    version='0.4.2',
+    version='0.5.0',
     packages=['bfdc'],
     install_requires=[
         'scikit-image',
@@ -11,7 +11,8 @@ setup(
         'scipy',
         'matplotlib',
         'read-roi',
-        'imreg_dft'
+        'imreg_dft',
+        'pandas'
     ],
     url='https://github.com/imodpasteur/Brightfield_Drift_Tracking_3D.git',
     license='MIT',

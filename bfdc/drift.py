@@ -1,7 +1,9 @@
 import traceback
 import logging
 import numpy as np
-import os, sys
+import os
+import sys
+import pandas as pd
 import bfdc.batch as batch
 import bfdc.xcorr as xcorr
 import bfdc.feature as ft
@@ -41,16 +43,16 @@ class DriftFitter:
         self.radius_z = radius_z
         self.z_last = None
 
-    def do_trace(self, 
-                movie, 
-                frame_list, 
-                extend_xy=5, 
-                min_xcorr=0.5, 
-                z_zoom=20, 
-                min_signal=100, 
-                smooth_movie=0,
-                debug=False, 
-                callback=None):
+    def do_trace(self,
+                 movie,
+                 frame_list,
+                 extend_xy=5,
+                 min_xcorr=0.5,
+                 z_zoom=20,
+                 min_signal=100,
+                 smooth_movie=0,
+                 debug=False,
+                 callback=None):
         logging.info(f"doTrace: got the movie with shape {movie.shape}, using {len(frame_list)} frames for tracing")
         # for i,frame in enumerate(movie):
         # crop frame with extended by 5px boundaries
@@ -63,7 +65,7 @@ class DriftFitter:
         xc = np.mean([b["xmax"], -b["xmin"]])
         yc = np.mean([b["ymax"], -b["ymin"]])
         x_, y_, z_ = 0, 0, 0
-        #z_px = 0
+        # z_px = 0
         frame_num = 0
         self.x_correction = 0
         self.y_correction = 0
@@ -263,7 +265,7 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     px = [args.xypixel, args.xypixel, args.zstep, args.xypixel, args.xypixel]
 
     print(f'Pixel size xyz: {px}')
-    drift_px = np.zeros((1, 4))
+    drift_px = np.zeros((1, 6))
 
 
     try:
@@ -276,10 +278,10 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     try:
         fitter = DriftFitter(cal_stack, roi, radius_xy=8, radius_z=12)
         drift_px = fitter.do_trace(movie, 
-                                    frame_list=frame_list, 
-                                    min_signal=min_signal, 
-                                    debug=debug, 
-                                    callback=callback)
+                                   frame_list=frame_list, 
+                                   min_signal=min_signal, 
+                                   debug=debug, 
+                                   callback=callback)
     except KeyboardInterrupt as e:
         print(e)
 
@@ -287,7 +289,9 @@ def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     try:    
         drift_nm[:, 1:] = drift_px[:, 1:] * px
     except ValueError:
+        logger.error(f'Unable to apply px size. px = {px}, drift_nm.shape = {drift_nm.shape}')
         dif = len(drift_px[0,1:]) - len(px)
+        logger.error(f'dif in shape drift_px[0,1:] - len(px) = {dif}')
         [px.append(1) for _ in range(dif)]
         logger.error(f'trace_drift_auto: Unable to apply pixel size: error in brodcasting, used 1 for the last {dif} columns')
         drift_nm[:, 1:] = drift_px[:, 1:] * px
@@ -310,7 +314,13 @@ def move_drift_to_zero(drift_nm, ref_average=10):
     return drift_
 
 
-def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=0, maxbg=0, zinvert=0):
+def apply_drift(zola_table: pd.DataFrame,
+                bf_table: np.ndarray,
+                start=None,
+                skip=None,
+                smooth=0,
+                maxbg=0,
+                zinvert=0):
     # TODO: save smoothed drift plot with interpolated frame numbers
     # TODO: extrapolate to all frame numbers in the ZOLA table
     """
@@ -324,36 +334,51 @@ def apply_drift(zola_table, bf_table, start=None, skip=None, smooth=0, maxbg=0, 
                 Localiations with bg higher than max_bg will be rejected from the localization table.
     :return: drift corrected zola table, interpolated and smoothed drift table
     """
-    bf_table = iot.interpolate_drift_table(bf_table, start=start, skip=skip, smooth=smooth)
+    logger.info(f'Smooth table with sigma={smooth}')
+    bf_table_sm = iot.smooth_drift_table(bf_table, sigma=smooth)
+    logger.info(f'interpolation the drift table')
+    bf_table_int = iot.interpolate_frames(zola_table, bf_table_sm)
+    logger.info(f'table size change from {bf_table_sm.shape} to {bf_table_int.shape}')
 
     if zinvert:
         print('z invert')
-        bf_table[:, 3] = -1 * bf_table[:, 3]  # flip z
+        bf_table_int[:, 3] = -1 * bf_table_int[:, 3]  # flip z
 
-    zola_frame_num = int(np.max(zola_table[:, 1]))
+    zola_table_dc = zola_table.copy()
 
-    bf_frame_num = int(np.max(bf_table[:, 0]))
+    zola_frame_num = int(np.max(zola_table_dc['frame']))
+
+    bf_frame_num = int(np.max(bf_table_int[:, 0]))
 
     print(f'Frame number for zola/bf_DC : {zola_frame_num}/{bf_frame_num}')
 
-    if bf_frame_num < zola_frame_num:
-        logger.info(f'Truncating ZOLA table to {bf_frame_num} frames')
-        zola_table = zola_table[zola_table[:, 1] < bf_frame_num]
-        # fnum = int(np.max(zola_table[:, 1]))
-        # print(f'New frame number: {fnum}')
-
-    frame_nums = np.array(zola_table[:, 1], dtype='int')
-    bf_drift_framed = bf_table[frame_nums - 1]
-
-    zola_table_dc = zola_table.copy()
-    zola_table_dc[:, [2, 3, 4]] = zola_table_dc[:, [2, 3, 4]] - bf_drift_framed[:, [1, 2, 3]]
-    zola_table_dc[:, [11, 12, 13]] = bf_drift_framed[:, [1, 2, 3]]
-    zola_dc_wo_bf = zola_table_dc
+    frame_nums = np.array(zola_table['frame'], dtype='int')
+    
+    for i, col in enumerate(['x [nm]', 'y [nm]', 'z [nm]']):
+        try:
+            zola_table_dc[col] = zola_table_dc[col].to_numpy() - bf_table_int[:, i + 1]
+            logger.debug(f'Apply drift for column {col}')
+        except KeyError:
+            logger.warning(f'{col} is missing in localization table, skipping')
+        
+    for i, col in enumerate(['driftX', 'driftY', 'driftZ']):
+        try:
+            zola_table_dc[col] = bf_table_int[:, i + 1]
+            logger.debug(f'Save drift into column {col}')
+        except KeyError:
+            logger.warning(f'No drift column {col} found, skipping')
+    
+    zola_dc_wo_bf = zola_table_dc.copy()
     if maxbg > 0:
-        print(f'Filter background < {maxbg}')
-        zola_dc_wo_bf = zola_table_dc[zola_table_dc[:, 6] < maxbg]
-        print(f'Filter out {len(zola_table_dc) - len(zola_dc_wo_bf)}')
-    return zola_dc_wo_bf, bf_table
+        logger.info(f'Filter background < {maxbg}')
+        for col in ['offset [photon]', 'background']:
+            try:
+                zola_dc_wo_bf = zola_table_dc[zola_table_dc['background'] < maxbg]
+                logger.debug(f'Filter column {col}')
+            except KeyError:
+                pass
+        logger.info(f'Filter out {len(zola_table_dc) - len(zola_dc_wo_bf)}')
+    return zola_dc_wo_bf, bf_table_int
 
 
 def main(argsv=None, callback=None):
@@ -434,8 +459,8 @@ def main(argsv=None, callback=None):
         bf_path = iot.get_abs_path(args.drift_table)
 
         log(f'Opening localization table')
-        zola_table = iot.open_csv_table(zola_path)
-        log(f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table[:,1]))} frames')
+        zola_table = iot.open_localization_table(zola_path)
+        log(f'Zola table contains {len(zola_table)} localizations from {len(np.unique(zola_table["frame"]))} frames')
 
         bf_table = iot.open_csv_table(bf_path)
 
@@ -458,7 +483,7 @@ def main(argsv=None, callback=None):
 
         path = os.path.splitext(zola_path)[0] + f'_BFDC_smooth_{args.smooth}.csv'
         log(f'saving results to {path}')
-        iot.save_zola_table(zola_table_dc, path)
+        zola_table_dc.to_csv(path, index=False)
         iot.save_drift_plot(move_drift_to_zero(bf_table_int), os.path.splitext(path)[0] + '.png', callback=callback)
 
     elif args.command == 'batch':
