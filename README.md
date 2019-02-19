@@ -103,6 +103,8 @@ Fluorescent bead track before and after BFDC.
 
 # Change log
 
+V0.5.0 Using pandas for table handling
+
 V0.2.0 Processing tif file sets
 
 V0.1.4 Batch processing 
