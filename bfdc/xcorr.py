@@ -7,8 +7,8 @@ from skimage.feature import match_template
 import logging
 
 logger = logging.getLogger(__name__)
-# logger.setLevel(logging.WARNING)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
+#logger.setLevel(logging.DEBUG)
 
 
 class LowXCorr(Exception):
@@ -116,6 +116,15 @@ def fit_gauss_3d(stack: np.ndarray,
     zx_proj = cut_stack.max(axis=1)
     zy_proj = cut_stack.max(axis=2)
     z_proj = cut_stack.max(axis=(1, 2))
+    '''
+    _, _x, _y = get_abs_max(cut_stack)
+    logger.debug(f'Looking for xy peak {(_x, _y)}')
+
+    z_crop = cut_stack[:, _y-1:_y+2, _x-1:_x+2]
+    logger.debug(f'Crop {z_crop.shape}')
+
+    z_proj = z_crop.mean(axis=(1, 2))
+    '''
     # z_proj = cut_stack[:,r].max(axis=1) #ignore y
     # z_proj = cut_stack[:,r,r] #ignore xy
     # z_proj = cut_stack[:,r,r]
@@ -132,7 +141,7 @@ def fit_gauss_3d(stack: np.ndarray,
         #logger.error(f'result: {result_fit}')
         return FitResult()
 
-    zfitter = FitPoly1D(z_proj, zoom=20, radius=8)
+    zfitter = FitPoly1D(z_proj, zoom=20, radius=5)
     z = zfitter(plot=debug)
     logger.debug(f'raw xyz {np.round((x, y, z),2)}')
 
