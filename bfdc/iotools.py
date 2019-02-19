@@ -316,33 +316,19 @@ def save_drift_plot(table, path, callback=None):
     logger.info(f"Saved drift plot to {path}")
 
 
-def interpolate_drift_table(table, start=0, skip=0, smooth=10):
-    """
-    Smooth and interpolate a table
-    :param table: fxyz (nm) array
-    :param start: in case of renumbering needed : first frame
-    :param skip: how many frame were skipped
-    :param smooth: gaussian smoothing sigma
-    :return: interpolated table
-    """
-    w = table.shape[1]
-    if smooth > 0:
-        table = smooth_drift_table(table, sigma=smooth)
-
-    table = update_frame_number(table, start=start, skip=skip)
-
-    time = table[:, 0]
+def interpolate_frames(loc_table: pd.DataFrame, bf_table):
+    w = bf_table.shape[1]
+    time = bf_table[:, 0]
     # print(time.shape)
-    time_new = np.arange(1, max(time) + 1)
+    time_new = loc_table['frame'].values
     new_table = np.zeros((len(time_new), w))
     new_table[:, 0] = time_new
     for col in range(1, w):
-        y = table[:, col]
+        y = bf_table[:, col]
         # print(y.shape)
         f = interpolate.interp1d(time, y, fill_value='extrapolate')
         ynew = f(time_new)
         new_table[:, col] = ynew
-    logger.info(f'interpolating from {len(time)} to {len(ynew)} frames')
     return new_table
 
 
