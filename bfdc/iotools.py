@@ -1,10 +1,5 @@
 import argparse
 
-import numpy as np
-import os
-import matplotlib as mpl
-mpl.use('TkAgg')
-#mpl.use('PS')
 import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy.ndimage import gaussian_filter1d as gf1
@@ -13,6 +8,11 @@ import bfdc.picassoio as pio
 import subprocess
 import pandas as pd
 import logging
+import numpy as np
+import os
+import matplotlib as mpl
+mpl.use('TkAgg')
+# mpl.use('PS')
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -25,27 +25,30 @@ def open_stack(path):
         stack = TiffStackOpener(path, virtual=False)
         return stack.get_stack()
     else:
-        logger.error('Please provide either ome.tif or a folder with .tif files')
+        logger.error(
+            'Please provide either ome.tif or a folder with .tif files')
         raise TypeError
+
 
 def open_virtual_stack_picasso(path):
     movie, [_] = pio.load_movie(path)
     return movie
 
 
-def open_virtual_stack(path:str):
+def open_virtual_stack(path: str):
     '''
     Opens virtual stack, returns iterable
     :param path: string
     :return: iterable
     '''
     if os.path.isdir(path):
-        stack = TiffStackOpener(path,virtual=True)
+        stack = TiffStackOpener(path, virtual=True)
         return stack.picasso_ome
     elif path.endswith('ome.tif'):
         return open_virtual_stack_picasso(path=path)
     else:
-        logger.error('Please provide either ome.tif or a folder with .tif files')
+        logger.error(
+            'Please provide either ome.tif or a folder with .tif files')
         raise TypeError
 
 
@@ -109,7 +112,8 @@ class TiffStackOpener:
                 f = io.imread(path)
                 yield f
             except IOError:
-                logger.debug(f"file {os.path.join(path, fname)} doesn't exist, break")
+                logger.debug(
+                    f"file {os.path.join(path, fname)} doesn't exist, break")
                 break
 
     def tif_zstack_opener(self):
@@ -179,7 +183,7 @@ class TiffStackOpener:
 
     def __iter__(self):
         for i in self.file_list:
-            yield io.imread(os.path.join(self.path,i))
+            yield io.imread(os.path.join(self.path, i))
 
     @property
     def shape(self):
@@ -197,7 +201,8 @@ class TiffStackOpener:
 
         else:
             logger.error('Stack type not defined to invoke the shape')
-            raise AttributeError('Unable to get stack shape as stack is not properly loaded')
+            raise AttributeError(
+                'Unable to get stack shape as stack is not properly loaded')
 
     def __getitem__(self, i):
         # return n-th item
@@ -209,8 +214,8 @@ class TiffStackOpener:
             return io.imread(os.path.join(self.path, self.file_list[i]))
         else:
             logger.error('Stack type not defined')
-            raise AttributeError('Unable to get item as stack is not properly loaded')
-
+            raise AttributeError(
+                'Unable to get item as stack is not properly loaded')
 
 
 def save_drift_table(table: np.ndarray, path):
@@ -253,32 +258,47 @@ def open_csv_table(path, show_header=False):
         subprocess.check_output(['head', '-n', '1', path])
     return np.loadtxt(path, delimiter=',', skiprows=1)
 
-supported_ext = {'csv':
-                    {'load': pd.read_csv, 'save': pd.to_csv}, 
-                'hdf5':
-                    {'load': pd.read_hdf, 'save': pd.to_hdf}
-}
-    
+
+supported_ext = {'.csv':
+                 {'load': pd.read_csv,
+                  'save': pd.DataFrame.to_csv},
+                 '.hdf5':
+                 {'load': pd.read_hdf, 'save': pd.DataFrame.to_hdf}
+                 }
+
+
+def get_ext(path):
+    """
+    Get File extension
+    """
+    return os.path.splitext(path)[1]
+
+
 def open_localization_table(path):
     '''
     Generalized table openeneer based on pandas
     '''
     ext = get_ext(path)
     try:
-        file_handler = supported_ext(ext)
-    except IndexError:
-        logger.error(f'Unsupported file format. Expected {list(supported_ext)}')
+        file_handler = supported_ext[ext]
+        return file_handler['load'](path)
 
+    except KeyError:
+        logger.error(
+            f'Unsupported file format. Expected {list(supported_ext)}')
+        raise TypeError(
+            f'Unsupported file format. Expected {list(supported_ext)}')
 
 
 def save_zola_table(table, path):
     header = 'id,frame,x [nm],y [nm],z [nm],intensity,background,chi2,crlbX,crlbY,crlbZ,driftX,driftY,driftZ,' \
              'occurrenceMerging '
-    np.savetxt(path, table[:, :15], fmt='%.2f', delimiter=',', comments='', newline='\r\n', header=header)
+    np.savetxt(path, table[:, :15], fmt='%.2f', delimiter=',',
+               comments='', newline='\r\n', header=header)
 
 
 def plot_drift(table):
-    plt.figure(figsize=(6,4), dpi=150)
+    plt.figure(figsize=(6, 4), dpi=150)
     plt.plot(table[:, 0], table[:, 1:])
     plt.xlabel('frame')
     plt.ylabel('Drift, nm')
@@ -291,7 +311,8 @@ def save_drift_plot(table, path, callback=None):
     plot_drift(table)
     plt.savefig(path)
     plt.close()
-    if callback: callback({"Plot":path})
+    if callback:
+        callback({"Plot": path})
     logger.info(f"Saved drift plot to {path}")
 
 
@@ -333,7 +354,8 @@ def smooth_drift_table(table, sigma):
 
 
 def check_stacks_size_equals(cal_stack, movie):
-    logger.info(f'check_stacks_size_equals: Input shapes {cal_stack.shape,movie.shape}')
+    logger.info(
+        f'check_stacks_size_equals: Input shapes {cal_stack.shape,movie.shape}')
     if len(cal_stack.shape) == len(movie.shape) == 3:
         x1, x2 = cal_stack.shape[1], cal_stack.shape[2]
         y1, y2 = movie.shape[1], movie.shape[2]
@@ -357,13 +379,16 @@ def check_multi_channel(movie, channel=2, channel_position=1):
         return movie
     elif ndim == 4:
         if channel_position == 1:
-            logger.info(f'check_multi_channel: Returning shape {movie[:,channel-1].shape}')
+            logger.info(
+                f'check_multi_channel: Returning shape {movie[:,channel-1].shape}')
             return movie[:, channel - 1]
         elif channel_position == 0:
-            logger.info(f'check_multi_channel: Returning shape {movie[channel-1].shape}')
+            logger.info(
+                f'check_multi_channel: Returning shape {movie[channel-1].shape}')
             return movie[channel - 1]
     else:
-        raise (TypeError(f'check_multi_channel: channel order not understood, movie shape {movie.shape}'))
+        raise (TypeError(
+            f'check_multi_channel: channel order not understood, movie shape {movie.shape}'))
 
 
 def skip_stack(n_frames: int, start: int, skip: int, maxframes: int):
@@ -386,7 +411,8 @@ def skip_stack(n_frames: int, start: int, skip: int, maxframes: int):
     if maxframes == 0:
         maxframes = None
     index_list = index_list[start:maxframes:skip]
-    logger.info(f'skip_stack: returning frame list with {len(index_list)} frames')
+    logger.info(
+        f'skip_stack: returning frame list with {len(index_list)} frames')
     return index_list
 
 
@@ -404,7 +430,8 @@ def update_frame_number(table, start, skip):
         elif table[0, 0] == 0:
             pass
         else:
-            raise (ValueError("update_frame_number: Wrong table. Expected frame numbers starting with 0 or 1"))
+            raise (ValueError(
+                "update_frame_number: Wrong table. Expected frame numbers starting with 0 or 1"))
         table[:, 0] *= skip
         table[:, 0] += start - 1
         logger.info("update_frame_number: Updated frame numbers successfully")
@@ -444,9 +471,12 @@ def parse_input():
                               help='calibration file roi from ImageJ')
     trace_parser.add_argument('movie', type=str, default='data/sr_2_LED_movie.tif',
                               help='movie stack file')
-    trace_parser.add_argument('-z', '--zstep', type=int, default=100, help='z-step in nm. Default: 100')
-    trace_parser.add_argument('--zdirection', type=str, default='approach', help='Choose approach/retract for the direction of calibration. Default: approach')
-    trace_parser.add_argument('-xypx', '--xypixel', type=int, default=110, help='xy pixel size in nm. Default: 110')
+    trace_parser.add_argument(
+        '-z', '--zstep', type=int, default=100, help='z-step in nm. Default: 100')
+    trace_parser.add_argument('--zdirection', type=str, default='approach',
+                              help='Choose approach/retract for the direction of calibration. Default: approach')
+    trace_parser.add_argument('-xypx', '--xypixel', type=int,
+                              default=110, help='xy pixel size in nm. Default: 110')
     trace_parser.add_argument('--nframes', type=int, default=None,
                               help='now many frames to analyse from the movie. Default: None')
     trace_parser.add_argument('--driftFileName', type=str, default='BFCC_table',
@@ -467,7 +497,8 @@ def parse_input():
                               help='If 1, will output debug info. Default: 0')
 
     # apply
-    apply_parser = subparsers.add_parser('apply', help='apply drift 3D to ZOLA table')
+    apply_parser = subparsers.add_parser(
+        'apply', help='apply drift 3D to ZOLA table')
     apply_parser.add_argument('zola_table', type=str, default='',
                               help='ZOLA localization table, format ifxyz.......dxdydz')
     apply_parser.add_argument('drift_table', type=str, default='BFCC_table.csv',
@@ -477,19 +508,24 @@ def parse_input():
     apply_parser.add_argument('--start', type=int, default=0,
                               help='how many frames to skip in the beginning of the movie. Default: 0')
 
-    apply_parser.add_argument('--smooth', type=int, default=0, help='gaussian smoothing for the drift. Default: 0')
+    apply_parser.add_argument('--smooth', type=int, default=0,
+                              help='gaussian smoothing for the drift. Default: 0')
     apply_parser.add_argument('--maxbg', type=int, default=0,
                               help='reject localizations with high background. Default: 0')
-    apply_parser.add_argument('--zinvert', type=int, default=0, help='invert z axis for drift. Default: 0')
+    apply_parser.add_argument(
+        '--zinvert', type=int, default=0, help='invert z axis for drift. Default: 0')
 
     # batch
-    batch_parser = subparsers.add_parser('batch', help='''Batch trace and apply drift 3D to ZOLA table''')
+    batch_parser = subparsers.add_parser(
+        'batch', help='''Batch trace and apply drift 3D to ZOLA table''')
     batch_parser.add_argument('batch_path', type=str, default='',
                               help='data path')
-    batch_parser.add_argument('-z', '--zstep', type=int, default=100, help='z-step in nm. Default: 100')
+    batch_parser.add_argument(
+        '-z', '--zstep', type=int, default=100, help='z-step in nm. Default: 100')
     batch_parser.add_argument('--zdirection', type=str, default='approach',
                               help='Choose approach/retract for the direction of calibration. Default: approach')
-    batch_parser.add_argument('-xypx', '--xypixel', type=int, default=110, help='xy pixel size in nm. Default: 110')
+    batch_parser.add_argument('-xypx', '--xypixel', type=int,
+                              default=110, help='xy pixel size in nm. Default: 110')
     batch_parser.add_argument('--skip', type=int, default=0,
                               help='how many frames to skip form the movie. Default: 0')
     batch_parser.add_argument('--start', type=int, default=0,
@@ -525,13 +561,15 @@ def parse_input():
     batch_parser.add_argument('--zola_lock_filename', type=str, default='ZOLA_.lock',
                               help='ZOLA DC table name. Default: ZOLA_.lock')
 
-    batch_parser.add_argument('--smooth', type=int, default=50, help='gaussian smoothing for the drift. Default: 50')
+    batch_parser.add_argument('--smooth', type=int, default=50,
+                              help='gaussian smoothing for the drift. Default: 50')
     batch_parser.add_argument('--filter_bg', type=int, default=100,
                               help='''Use this value to detect BF frames. 
                                    Frames with the mean value more than this number are counted as bright field.
                                    In the reconstuction table, background more than this number will be filtered out.
                                    Default: 100
                                    ''')
-    batch_parser.add_argument('--zinvert', type=int, default=0, help='invert z axis for drift. Default: 0')
+    batch_parser.add_argument(
+        '--zinvert', type=int, default=0, help='invert z axis for drift. Default: 0')
 
     return parser
