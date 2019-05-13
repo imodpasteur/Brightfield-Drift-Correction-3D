@@ -3,4 +3,5 @@ numpy
 scipy
 matplotlib<2.2
 read-roi
-
+imreg_dft
+pandas
