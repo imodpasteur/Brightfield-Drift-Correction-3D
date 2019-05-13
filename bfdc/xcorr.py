@@ -64,21 +64,16 @@ def fit_gauss_3d(stack: np.ndarray,
     Fitting 2D gaussian in xy, 4-order polynomial in z
     Ouputs [x,y,z] in pixels
     """
+    fit2d = False
 
     from bfdc import gaussfit
 
     logger.debug(f'Start fit_gauss_3d with the stack shape zyx {stack.shape}')
     logger.debug(f'radius_xy={radius_xy}, radius_z={radius_z}, z_zoom={z_zoom}')
-    assert np.ndim(stack) == 3, logger.error(
-        f'fit_gauss_3d: input stack shape is wrong, expected 3 dim, got {stack.shape}')
+    
 
-    if False:
-        plt.imshow(stack.max(axis=0))
-        plt.title('Max xy projection of cc-stack')
-        plt.show()
-
-    z_px, y_px, x_px = get_abs_max(stack)
-    logger.debug(f'Got absolute maximum xyz (px) {(x_px, y_px, z_px )}')
+    r, rz = radius_xy, radius_z
+    
     cc_value = np.max(stack)
     if cc_value < min_xcorr:
         # raise(LowXCorr("fit_gauss_3d: Cross corellation value os too low!"))
@@ -87,7 +82,27 @@ def fit_gauss_3d(stack: np.ndarray,
     else:
         logger.debug(f'cc peak value={cc_value}')
 
-    r, rz = radius_xy, radius_z
+    if np.ndim(stack) == 2:
+        stack = np.expand_dims(stack, axis=0)
+        logger.warning(f'fit_gauss_3d: switch to 2D mode as input stack shape {stack.shape}')
+        assert stack.ndim == 3
+        fit2d = True
+
+    z_px, y_px, x_px = get_abs_max(stack)
+    _, y_max, x_max = stack.shape
+        
+    y1 = max(0, y_px - r)
+    y2 = min(y_max, y_px + r)
+    x1 = max(0, x_px - r)
+    x2 = min(x_max, x_px + r)
+ 
+    if False:
+        plt.imshow(stack.max(axis=0))
+        plt.title('Max xy projection of cc-stack')
+        plt.show()
+    
+    logger.debug(f'Got absolute maximum xyz (px) {(x_px, y_px, z_px )}')
+    
     if z_init is None:
         z_start = max(z_px - rz, 0)
         z_stop = min(z_px + rz, len(stack))
@@ -100,11 +115,7 @@ def fit_gauss_3d(stack: np.ndarray,
         z_crop = (z_start, z_stop)
         logger.debug(f'Using z boundaries: z_start={z_start}, z_stop={z_stop}')
 
-    _, y_max, x_max = stack.shape
-    y1 = max(0, y_px - r)
-    y2 = min(y_max, y_px + r)
-    x1 = max(0, x_px - r)
-    x2 = min(x_max, x_px + r)
+    
     cut_stack = stack[z_start:z_stop, y1:y2, x1:x2]
     logger.debug(f'After cutting x,y,z, we got cut_stack shape {cut_stack.shape}')
     if cut_stack.shape != (z_stop - z_start, 2 * r, 2 * r):
@@ -140,18 +151,20 @@ def fit_gauss_3d(stack: np.ndarray,
         logger.error(f'Error in gaussian fit: {e}')
         #logger.error(f'result: {result_fit}')
         return FitResult()
+    if fit2d:
+        z_found = 0
+    else:
+        zfitter = FitPoly1D(z_proj, zoom=20, radius=5)
+        z = zfitter(plot=debug)
+        logger.debug(f'raw xyz {np.round((x, y, z),2)}')
 
-    zfitter = FitPoly1D(z_proj, zoom=20, radius=5)
-    z = zfitter(plot=debug)
-    logger.debug(f'raw xyz {np.round((x, y, z),2)}')
+        x_found = x - r + x_px
+        y_found = y - r + y_px
+        logger.debug(f'xy found: {np.round((x_found, y_found),2)}')
 
-    x_found = x - r + x_px
-    y_found = y - r + y_px
-    logger.debug(f'xy found: {np.round((x_found, y_found),2)}')
+        z_found = z + z_start
 
-    z_found = z + z_start
-
-    if debug:
+    if debug and not fit2d:
         # fitted_ellipsoid = gaussfit.ellipticalGaussian3dOnRamp(*result_fit)(*np.indices(cut_stack.shape))
 
         # fit_residue = cut_stack - fitted_ellipsoid
@@ -223,7 +236,14 @@ def fit_gauss_3d(stack: np.ndarray,
         '''
         plt.tight_layout()
         plt.show()
+    elif debug and fit2d:
+        fig = plt.figure(dpi=72, figsize=(3, 3))
 
+        plt.plot(x,y,'r+')
+        plt.title('xy')
+        plt.colorbar()
+        plt.show()
+        
     return FitResult(x_found, y_found, z_found, good, None, z_px)
 
 
