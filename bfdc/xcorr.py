@@ -340,15 +340,40 @@ def cc_template(image, template, plot=False):
     except ValueError:
         logging.error(f"Error in cc_template. Image shape {image.shape}, template shape {template.shape  }")
 
+def cc_2d(image, template, plot=False):
+    '''
+    Correlates image with template in 2D
+    '''
+    image = np.array(image - np.mean(image), dtype='f')
+    template = np.array(template - np.mean(template), dtype='f')
+    cc_result = cc_template(image, t)
+    if plot:
+        plt.imshow(out.max(axis=0))
+        plt.title('cross-correlation xy')
+        plt.colorbar()
+        plt.show()
+    return cc_result
+
 
 def cc_stack(image, stack, plot=False):
+    '''
+    Correlates and image with 3D stack, returns 3D stack
+    '''
+
     image = np.array(image - np.mean(image), dtype='f')
     stack = np.array(stack - np.mean(stack), dtype='f')
+    if stack.ndim == 3:
+        stack = stack
+    elif stack.ndim == 2:
+        stack = [stack]
+    else:
+        raise ValueError(f'Wrong stack with shape {stack.shape}, expected 2 or 3 dimensions')
+    
     out = []
     for t in stack:
         out.append(cc_template(image, t))
     out = np.array(out)
-    if plot:
+    if plot and stack.ndim == 3:
         fig = plt.figure(figsize=(6, 2))
 
         fig.add_subplot(131)
@@ -366,6 +391,12 @@ def cc_stack(image, stack, plot=False):
         plt.title('max zy')
         plt.colorbar()
         plt.show()
+    elif plot and stack.ndim == 2:
+        plt.imshow(out.max(axis=0))
+        plt.title('cross-correlation xy')
+        plt.colorbar()
+        plt.show()
+
     return out
 
 
