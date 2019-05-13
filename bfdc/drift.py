@@ -404,17 +404,6 @@ def main(argsv=None, callback=None):
         assert isinstance(args.xypixel, int)
         assert isinstance(args.zstep, int)
 
-        cal_path = iot.get_abs_path(args.dict)
-        log(f'Opening calibration {args.dict}')
-        cal_stack = iot.open_stack(cal_path)
-        if args.zdirection == 'approach':
-            cal_stack = cal_stack[::-1]
-            log(f'Due to calibration direction {args.zdirection}, calibration stack was inverted')
-        log(f'Imported dictionary {cal_stack.shape}')
-
-        roi_path = iot.get_abs_path(args.roi)
-        log(f'Opening roi {args.roi}')
-        roi = ft.read_roi(roi_path)
 
         movie_path = iot.get_abs_path(args.movie)
         if args.lock:
@@ -427,6 +416,21 @@ def main(argsv=None, callback=None):
         except AttributeError:
             log(f'Imported movie from the set of tif files')
             size_check = True
+
+        if args.dict:
+            cal_path = iot.get_abs_path(args.dict)
+            log(f'Opening calibration {args.dict}')
+            cal_stack = iot.open_stack(cal_path)
+            if args.zdirection == 'approach':
+                cal_stack = cal_stack[::-1]
+                log(f'Due to calibration direction {args.zdirection}, calibration stack was inverted')
+            log(f'Imported dictionary {cal_stack.shape}')
+        else:
+            cal_stack = movie[0]
+            
+        roi_path = iot.get_abs_path(args.roi)
+        log(f'Opening roi {args.roi}')
+        roi = ft.read_roi(roi_path)
 
         if size_check:
             log('Stack and movie of equal sizes')
