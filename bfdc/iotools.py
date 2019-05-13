@@ -451,7 +451,7 @@ def parse_input():
 
     # trace
     trace_parser = subparsers.add_parser('trace', help='identify drift in 3D')
-    trace_parser.add_argument('--dict', type=str, default='data/LED_stack_full_100nm.tif',
+    trace_parser.add_argument('--dict', type=str, default='',
                               help='calibration stack file')
     trace_parser.add_argument('roi', type=str, default='',
                               help='calibration file roi from ImageJ')
