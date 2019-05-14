@@ -7,3 +7,4 @@ build/*
 *.egg
 bfdc.egg-info/*
 bfdc/__pycache__
+.vscode

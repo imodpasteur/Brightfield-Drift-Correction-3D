@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-#logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 
 
 class WrongCrop(Exception):
@@ -83,8 +83,13 @@ class DriftFitter:
                 frame = movie[f]
                 good = False
                 z = 0
-                logger.debug(f'\nOpen frame {f+1}')
+                logger.debug(f'\nOpen frame {f+1}, shape {frame.shape}')
+                
+                # plt.imshow(frame)
+                # plt.show()
+
                 frame_mean = frame.mean()
+                logger.debug(f'frame mean {frame_mean}')
                 if frame_mean < min_signal:
                     logger.debug('Skip frame due to low mean signal')
                 else:
@@ -95,6 +100,9 @@ class DriftFitter:
                         raise (WrongCrop(f"doTrace: problem with boundaries: crop size hits 0 {crop_frame.shape}"))
                     crop_dict = self.crop_dict()
                     cc = xcorr.cc_stack(crop_frame, crop_dict)
+                    logger.debug(f'cc shape: {cc.shape}')
+                    # plt.imshow(cc[0])
+                    # plt.show()
                     if cc.max() < min_xcorr:
                         logger.warning(f'xcorr.max is lower than threshold {min_xcorr}')
                         #self.z_crop = (0, None)
@@ -218,7 +226,10 @@ class DriftFitter:
         self.z_crop = (z1, z2)
 
     def crop_dict(self):
-        return self.dict[self.z_crop[0]:self.z_crop[1]]
+        if len(self.dict) > 1:
+            return self.dict[self.z_crop[0]:self.z_crop[1]]
+        else:
+            return self.dict
 
     def update_xy_boundaries(self, x, y, extend):
         logger = logging.getLogger(__name__)
@@ -243,7 +254,7 @@ class DriftFitter:
             b['ymax'] += ydif
             self.y_correction += ydif
         else:
-            logger.debug('Ignore')
+            logger.debug('Keeping xy correction the same')
 
 def trace_drift_auto(args, cal_stack, movie, roi, debug=False, callback=None):
     """
@@ -352,7 +363,7 @@ def apply_drift(zola_table: pd.DataFrame,
 
     print(f'Frame number for zola/bf_DC : {zola_frame_num}/{bf_frame_num}')
 
-    frame_nums = np.array(zola_table['frame'], dtype='int')
+    # frame_nums = np.array(zola_table['frame'], dtype='int')
     
     for i, col in enumerate(['x [nm]', 'y [nm]', 'z [nm]']):
         try:
@@ -410,12 +421,6 @@ def main(argsv=None, callback=None):
             lock = iot.put_trace_lock(os.path.dirname(movie_path))
         log(f'Opening movie {args.movie}')
         movie = iot.TiffStackOpener(movie_path)
-        try:
-            log(f'Imported movie {movie.shape}')
-            size_check = iot.check_stacks_size_equals(cal_stack, movie)
-        except AttributeError:
-            log(f'Imported movie from the set of tif files')
-            size_check = True
 
         if args.dict:
             cal_path = iot.get_abs_path(args.dict)
@@ -426,8 +431,16 @@ def main(argsv=None, callback=None):
                 log(f'Due to calibration direction {args.zdirection}, calibration stack was inverted')
             log(f'Imported dictionary {cal_stack.shape}')
         else:
-            cal_stack = movie[0]
-            
+            cal_stack = np.expand_dims(movie[0], axis=0)
+
+        try:
+            log(f'Imported movie {movie.shape}')
+            size_check = iot.check_stacks_size_equals(cal_stack, movie)
+        except AttributeError:
+            log(f'Imported movie from the set of tif files')
+            size_check = True
+
+        
         roi_path = iot.get_abs_path(args.roi)
         log(f'Opening roi {args.roi}')
         roi = ft.read_roi(roi_path)

@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-#logger.setLevel(logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 
 
 class LowXCorr(Exception):
@@ -82,9 +82,8 @@ def fit_gauss_3d(stack: np.ndarray,
     else:
         logger.debug(f'cc peak value={cc_value}')
 
-    if np.ndim(stack) == 2:
-        stack = np.expand_dims(stack, axis=0)
-        logger.warning(f'fit_gauss_3d: switch to 2D mode as input stack shape {stack.shape}')
+    if len(stack) == 1:
+        logger.debug(f'fit_gauss_3d: switch to 2D mode as input stack shape {stack.shape}')
         assert stack.ndim == 3
         fit2d = True
 
@@ -151,18 +150,20 @@ def fit_gauss_3d(stack: np.ndarray,
         logger.error(f'Error in gaussian fit: {e}')
         #logger.error(f'result: {result_fit}')
         return FitResult()
+
+    x_found = x - r + x_px
+    y_found = y - r + y_px
+    logger.debug(f'xy found: {np.round((x_found, y_found),2)}')
+
     if fit2d:
         z_found = 0
+        z = 0
     else:
         zfitter = FitPoly1D(z_proj, zoom=20, radius=5)
         z = zfitter(plot=debug)
-        logger.debug(f'raw xyz {np.round((x, y, z),2)}')
-
-        x_found = x - r + x_px
-        y_found = y - r + y_px
-        logger.debug(f'xy found: {np.round((x_found, y_found),2)}')
-
         z_found = z + z_start
+    
+    logger.debug(f'raw xyz {np.round((x, y, z),2)}')
 
     if debug and not fit2d:
         # fitted_ellipsoid = gaussfit.ellipticalGaussian3dOnRamp(*result_fit)(*np.indices(cut_stack.shape))
@@ -360,20 +361,6 @@ def cc_template(image, template, plot=False):
     except ValueError:
         logging.error(f"Error in cc_template. Image shape {image.shape}, template shape {template.shape  }")
 
-def cc_2d(image, template, plot=False):
-    '''
-    Correlates image with template in 2D
-    '''
-    image = np.array(image - np.mean(image), dtype='f')
-    template = np.array(template - np.mean(template), dtype='f')
-    cc_result = cc_template(image, t)
-    if plot:
-        plt.imshow(out.max(axis=0))
-        plt.title('cross-correlation xy')
-        plt.colorbar()
-        plt.show()
-    return cc_result
-
 
 def cc_stack(image, stack, plot=False):
     '''
@@ -390,9 +377,14 @@ def cc_stack(image, stack, plot=False):
         raise ValueError(f'Wrong stack with shape {stack.shape}, expected 2 or 3 dimensions')
     
     out = []
-    for t in stack:
-        out.append(cc_template(image, t))
-    out = np.array(out)
+    try:
+        for t in stack:
+            out.append(cc_template(image, t))
+        out = np.array(out)
+    except Exception as e:
+        logger.error('in cc_stack')
+        raise e
+
     if plot and stack.ndim == 3:
         fig = plt.figure(figsize=(6, 2))
 

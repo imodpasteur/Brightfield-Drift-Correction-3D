@@ -12,7 +12,7 @@ Use bright field signal to trace the drift in 3D with nanometer precision.
 
 With conda create a new environment with python 3.6:
 
-`conda create -n pydrift python=3.6`
+`conda create -n pydrift python=3.7`
 
 Then activate it and run installation:
 
@@ -22,14 +22,14 @@ Then activate it and run installation:
 
 ## Usage
 
-In order to trace the drift in 3D a calibration stack needed (dict.tif).
+In order to trace the drift in 3D a calibration stack needed (dict.tif). Otherwise, only 2D drift will be processed (the first frame is used as a reference).
 
 Acquire bright field images with the same exposure (movie.tif) in order to trace the drift with nanometer precision.
 
 You'll need to select a contrast region say 32x32 picels from the dict.tif and save as crop.roi (ImageJ ROI format)
 
 ### Tracing drift:
-`python -m bfdc trace dict.tif crop.roi movie.tif`
+`python -m bfdc trace crop.roi movie.tif --dict=dict.tif`
 
 ### Applying drift to ZOLA table:
 `python -m bfdc apply ZOLA_localization_table.csv BFCC_table.csv --smooth 10`
@@ -102,6 +102,8 @@ Fluorescent bead track before and after BFDC.
 ![input](img/bead_track_color.png) -> ![input](img/bead_track_color_BFDC.png) 
 
 # Change log
+
+V0.6.0 Supporting 2D drift without dictionary
 
 V0.5.0 Using pandas for table handling
 

@@ -11,6 +11,7 @@ import logging
 import numpy as np
 import os
 import matplotlib as mpl
+import glob
 mpl.use('TkAgg')
 # mpl.use('PS')
 
@@ -72,6 +73,7 @@ class TiffStackOpener:
         self.path = path
         self.movie_template = 'img_{:0>9d}_Default_000.tif'
         self.stack_template = 'img_000000000_Default_{:0>3d}.tif'
+        self.mm1_4_template = 'img_{:0>9d}_Default0_000.tif'
         self.picasso_ome = None
         self.stack = None
         self.tif_set = None
@@ -116,6 +118,13 @@ class TiffStackOpener:
                     f"file {os.path.join(path, fname)} doesn't exist, break")
                 break
 
+
+    def tif_folder_opener(self, flist):
+        for f in flist:
+            data = io.imread(f)
+            yield data
+
+    
     def tif_zstack_opener(self):
         return self.tif_movie_opener(template='img_000000000_Default_{:0>3d}.tif')
 
@@ -126,6 +135,15 @@ class TiffStackOpener:
         elif os.path.exists(os.path.join(self.path, self.stack_template.format(1))):
             logger.info('Tif stack detected')
             return self.tif_zstack_opener()
+        elif os.path.isdir(self.path):
+            flist = glob.glob(os.path.join(self.path, '*.tif'))
+            n_files = len(flist)
+            if n_files > 1:
+                logger.info(f'Folder detected with {n_files} tif')
+                return self.tif_folder_opener(flist)
+            else:
+                logger.error(f'Got {flist} and can\'t proceed')
+                return False
         else:
             logging.error(f'''File name pattern not recognized.\n
                           Tried path: {os.path.join(self.path, self.stack_template.format(0))}''')
@@ -313,7 +331,7 @@ def save_drift_plot(table, path, callback=None):
     plt.close()
     if callback:
         callback({"Plot": path})
-    logger.info(f"Saved drift plot to {path}")
+    print(f"Saved drift plot to {path}")
 
 
 def interpolate_frames(loc_table: pd.DataFrame, bf_table):
