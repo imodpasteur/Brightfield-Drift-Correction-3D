@@ -50,7 +50,7 @@ def fit_gauss_3d(stack, radius_xy=4, radius_z=5, z_zoom=20, debug=False):
         print([z_px, y_px, x_px])
     r, rz = radius_xy, radius_z
     z_start = np.maximum(z_px - rz, 0)
-    z_stop = np.minimum(z_px + rz + 2, len(stack) - 1)
+    z_stop = np.minimum(z_px + rz + 2, len(stack))
     cut_stack = stack[z_start:z_stop, y_px - r :y_px + r + 1, x_px - r :x_px + r + 1]
     if debug: print(f'cut_stack shape {cut_stack.shape}')
 
