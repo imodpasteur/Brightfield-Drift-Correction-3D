@@ -55,8 +55,8 @@ def fit_gauss_3d(stack: np.ndarray,
                  radius_xy: int = 4,
                  radius_z: int = 8,
                  z_zoom: int = 20,
-                 min_xcorr: np.float = 0.5,
-                 z_init: np.float = None,
+                 min_xcorr: float = 0.5,
+                 z_init: float = None,
                  fit_init: list = None,
                  debug=False) -> FitResult:
     """
